@@ -13,6 +13,7 @@ import { MessageSquare, ExternalLink, Search } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { applicationService } from "@/lib/api-service"
 import { useToast } from "@/components/ui/use-toast"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 
 interface Application {
   id: number;
@@ -149,7 +150,7 @@ export function ApplicationsList({ initialApplications }: ApplicationsListProps)
     const date = new Date(dateString)
     return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })
   }
-  
+
   // Filter applications by status
   const getFilteredApplications = () => {
     let filtered = [...applications]
@@ -221,11 +222,11 @@ export function ApplicationsList({ initialApplications }: ApplicationsListProps)
   }
 
   if (loading) {
-    return (
-      <div>
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold">My Applications</h2>
-        </div>
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">My Applications</h2>
+      </div>
         {[1, 2, 3].map((i) => (
           <Card key={i} className="overflow-hidden mb-4">
             <div className="flex flex-col md:flex-row">
@@ -376,8 +377,8 @@ export function ApplicationsList({ initialApplications }: ApplicationsListProps)
               </p>
               <Link href="/dashboard/explore">
                 <Button className="mt-4 mr-2" variant="outline">
-                  Explore Campaigns
-                </Button>
+            Explore Campaigns
+          </Button>
               </Link>
               <Button 
                 className="mt-4" 
@@ -393,7 +394,7 @@ export function ApplicationsList({ initialApplications }: ApplicationsListProps)
     }
     
     return (
-      <div className="space-y-4">
+        <div className="space-y-4">
         {applications.map((application) => {
           // Check if we have full campaign data or just basic application data
           const hasFullCampaignData = application.campaign && typeof application.campaign === 'object';
@@ -440,14 +441,12 @@ export function ApplicationsList({ initialApplications }: ApplicationsListProps)
             <Card key={application.id} className="overflow-hidden">
               <div className="flex flex-col md:flex-row">
                 <div className="relative w-full md:w-48 h-48 md:h-auto">
-                  <Image
+                  <ImageWithFallback
                     src={application.campaign?.imageUrl || "/placeholder.svg"}
                     alt={application.campaign?.title || "Campaign"}
                     fill
                     className="object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg";
-                    }}
+                    fallbackSrc="/placeholder.svg"
                   />
                 </div>
                 <CardContent className="flex-1 p-6">
@@ -498,8 +497,8 @@ export function ApplicationsList({ initialApplications }: ApplicationsListProps)
                     </Button>
                     <Button variant="outline" size="sm" asChild>
                       <Link href={`/dashboard/campaigns/${application.campaign?.id || application.campaign_id}`}>
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        View Campaign
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      View Campaign
                       </Link>
                     </Button>
                   </div>
@@ -508,7 +507,7 @@ export function ApplicationsList({ initialApplications }: ApplicationsListProps)
             </Card>
           );
         })}
-      </div>
-    )
+    </div>
+  )
   }
 }

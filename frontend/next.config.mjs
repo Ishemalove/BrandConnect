@@ -8,6 +8,26 @@ const nextConfig = {
   },
   images: {
     unoptimized: true,
+    domains: [
+      'images.unsplash.com',
+      'localhost',
+      'picsum.photos',
+      'via.placeholder.com',
+      'cloudflare-ipfs.com',
+      'source.unsplash.com',
+      'placehold.co',
+      'placeimg.com',
+      'randomuser.me',
+      'i.imgur.com',
+      'placekitten.com',
+      'storage.googleapis.com',
+      'firebasestorage.googleapis.com',
+      'res.cloudinary.com',
+      'amazonaws.com',
+      's3.amazonaws.com',
+      'img.freepik.com',
+      'loremflickr.com'
+    ],
   },
 }
 

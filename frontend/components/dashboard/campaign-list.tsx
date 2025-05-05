@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { MoreHorizontal, Edit, Trash2, Eye, Users } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Image from "next/image"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 
 // Mock data for campaigns
 const mockCampaigns = [
@@ -115,11 +116,12 @@ export function CampaignList() {
             <Card key={campaign.id} className="overflow-hidden">
               <div className="flex flex-col md:flex-row">
                 <div className="relative w-full md:w-48 h-48 md:h-auto">
-                  <Image
+                  <ImageWithFallback
                     src={campaign.image || "/placeholder.svg"}
                     alt={campaign.title}
                     fill
                     className="object-cover"
+                    fallbackSrc="/placeholder.svg"
                   />
                 </div>
                 <CardContent className="flex-1 p-6">

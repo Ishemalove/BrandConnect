@@ -7,11 +7,13 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="brandconnect-backend" />
+        <module name="brandconnect" />
       </profile>
     </annotationProcessing>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="brandconnect" options="-parameters" />
       <module name="brandconnect-backend" options="-parameters" />
     </option>
   </component>

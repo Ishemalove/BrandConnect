@@ -16,15 +16,29 @@ export default function SignupPage() {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [userType, setUserType] = useState<"brand" | "creator">("creator")
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
+  const [passwordTouched, setPasswordTouched] = useState(false)
+  const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false)
 
   const router = useRouter()
   const { signup } = useAuth()
 
+  // Only show validation errors after both fields have been touched
+  const shouldValidate = passwordTouched && confirmPasswordTouched
+  const passwordMismatch = password !== confirmPassword && shouldValidate && password && confirmPassword
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Final validation before submission
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+    
     setIsLoading(true)
     setError("")
 
@@ -92,9 +106,27 @@ export default function SignupPage() {
                 placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => setPasswordTouched(true)}
                 required
                 minLength={6}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                onBlur={() => setConfirmPasswordTouched(true)}
+                required
+                minLength={6}
+                className={passwordMismatch ? "border-destructive" : ""}
+              />
+              {passwordMismatch && (
+                <p className="text-xs text-destructive">Passwords do not match</p>
+              )}
             </div>
           </CardContent>
           <CardFooter className="flex flex-col space-y-4">
@@ -113,3 +145,4 @@ export default function SignupPage() {
     </div>
   )
 }
+

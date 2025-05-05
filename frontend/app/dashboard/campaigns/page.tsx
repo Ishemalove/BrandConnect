@@ -9,6 +9,7 @@ import { PlusCircle, Filter, ArrowUpDown } from "lucide-react"
 import Link from "next/link"
 import { campaignService } from "@/lib/api-service"
 import { toast } from "@/components/ui/use-toast"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 
 // Campaign type
 interface Campaign {
@@ -166,15 +167,15 @@ export default function CampaignsPage() {
                 activeCampaigns.map((campaign) => (
                   <Card key={campaign.id}>
                     <CardHeader className="p-4 pb-2">
-                      <img
-                        src={campaign.imageUrl || "/placeholder.svg"}
-                        alt={campaign.title}
-                        className="w-full h-40 object-cover rounded-md mb-2"
-                        onError={(e) => {
-                          // If image fails to load, set to placeholder
-                          e.currentTarget.src = "/placeholder.svg";
-                        }}
-                      />
+                      <div className="relative w-full h-40 mb-2">
+                        <ImageWithFallback
+                          src={campaign.imageUrl || "/placeholder.svg"}
+                          alt={campaign.title}
+                          fill
+                          className="object-cover rounded-md"
+                          fallbackSrc="/placeholder.svg"
+                        />
+                      </div>
                       <CardTitle className="text-lg">{campaign.title}</CardTitle>
                       <CardDescription>{campaign.category}</CardDescription>
                     </CardHeader>
@@ -211,15 +212,15 @@ export default function CampaignsPage() {
                 draftCampaigns.map((campaign) => (
                   <Card key={campaign.id}>
                     <CardHeader className="p-4 pb-2">
-                      <img
-                        src={campaign.imageUrl || "/placeholder.svg"}
-                        alt={campaign.title}
-                        className="w-full h-40 object-cover rounded-md mb-2"
-                        onError={(e) => {
-                          // If image fails to load, set to placeholder
-                          e.currentTarget.src = "/placeholder.svg";
-                        }}
-                      />
+                      <div className="relative w-full h-40 mb-2">
+                        <ImageWithFallback
+                          src={campaign.imageUrl || "/placeholder.svg"}
+                          alt={campaign.title}
+                          fill
+                          className="object-cover rounded-md"
+                          fallbackSrc="/placeholder.svg"
+                        />
+                      </div>
                       <CardTitle className="text-lg">{campaign.title}</CardTitle>
                       <CardDescription>{campaign.category}</CardDescription>
                     </CardHeader>
@@ -256,15 +257,15 @@ export default function CampaignsPage() {
                 completedCampaigns.map((campaign) => (
                   <Card key={campaign.id}>
                     <CardHeader className="p-4 pb-2">
-                      <img
-                        src={campaign.imageUrl || "/placeholder.svg"}
-                        alt={campaign.title}
-                        className="w-full h-40 object-cover rounded-md mb-2"
-                        onError={(e) => {
-                          // If image fails to load, set to placeholder
-                          e.currentTarget.src = "/placeholder.svg";
-                        }}
-                      />
+                      <div className="relative w-full h-40 mb-2">
+                        <ImageWithFallback
+                          src={campaign.imageUrl || "/placeholder.svg"}
+                          alt={campaign.title}
+                          fill
+                          className="object-cover rounded-md"
+                          fallbackSrc="/placeholder.svg"
+                        />
+                      </div>
                       <CardTitle className="text-lg">{campaign.title}</CardTitle>
                       <CardDescription>{campaign.category}</CardDescription>
                     </CardHeader>

@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { useToast } from "@/components/ui/use-toast"
 import { campaignService, applicationService } from "@/lib/api-service"
 import { useAuth } from "@/components/auth-provider"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 
 interface Campaign {
   id: number;
@@ -287,16 +288,13 @@ export function CampaignGallery() {
             onClick={() => setSelectedCampaign(campaign)}
           >
             <div className="relative h-48 w-full">
-              <Image
+              <ImageWithFallback
                 src={campaign.imageUrl || "/placeholder.svg"}
                 alt={campaign.title || "Campaign"}
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                onError={(e) => {
-                  // Fallback if image fails to load
-                  e.currentTarget.src = "/placeholder.svg";
-                }}
+                fallbackSrc="/placeholder.svg"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -321,14 +319,12 @@ export function CampaignGallery() {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-3">
                 <div className="h-8 w-8 rounded-full overflow-hidden relative">
-                  <Image
+                  <ImageWithFallback
                     src={campaign.brand?.logo || "/placeholder.svg"}
                     alt={campaign.brand?.name || "Brand"}
                     fill
                     className="object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = "/placeholder.svg";
-                    }}
+                    fallbackSrc="/placeholder.svg"
                   />
                 </div>
                 <span className="font-medium">{campaign.brand?.name || "Brand"}</span>
@@ -364,14 +360,12 @@ export function CampaignGallery() {
             </DialogHeader>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="relative h-64 rounded-lg overflow-hidden">
-                <Image
+                <ImageWithFallback
                   src={selectedCampaign.imageUrl || "/placeholder.svg"}
                   alt={selectedCampaign.title || "Campaign"}
                   fill
                   className="object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "/placeholder.svg";
-                  }}
+                  fallbackSrc="/placeholder.svg"
                 />
               </div>
               <div className="space-y-4">

@@ -1,16 +1,24 @@
 "use client"
 
 import type React from "react"
-
+import { useState, useEffect } from "react"
 import { useAuth } from "@/components/auth-provider"
 import { DashboardNavbar } from "@/components/dashboard/dashboard-navbar"
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { redirect } from "next/navigation"
-import { useEffect } from "react"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+
+  // Expose the toggle function to the window for the navbar to use
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).toggleMobileMenu = () => {
+        setIsMobileMenuOpen(prev => !prev);
+      };
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -31,16 +39,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <SidebarProvider>
-      <div className="flex min-h-screen flex-col">
-        <DashboardNavbar />
-        <div className="flex flex-1">
+    <div className="flex min-h-screen flex-col">
+      <DashboardNavbar openMobileMenu={() => setIsMobileMenuOpen(true)} />
+      <div className="flex flex-1 overflow-hidden">
+        {/* Mobile sidebar with overlay */}
+        <div 
+          className={`fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-200 ${
+            isMobileMenuOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+        
+        <aside 
+          className={`fixed left-0 top-[60px] bottom-0 w-64 md:w-64 border-r bg-background z-50 md:relative md:top-0 transition-transform duration-300 md:translate-x-0 ${
+            isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
           <DashboardSidebar />
-          <SidebarInset>
-            {children}
-          </SidebarInset>
-        </div>
+        </aside>
+        
+        <main className="flex-1 overflow-auto p-6 md:ml-0 w-full">
+          {children}
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   )
 }

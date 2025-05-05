@@ -2,13 +2,12 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { Bell, MessageSquare, Plus, Search } from "lucide-react"
+import { Bell, MessageSquare, Plus, Search, Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { BrandConnectLogo } from "@/components/brand-connect-logo"
 import { useAuth } from "@/components/auth-provider"
-import { SidebarTrigger } from "@/components/ui/sidebar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,7 +17,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-export function DashboardNavbar() {
+interface DashboardNavbarProps {
+  openMobileMenu: () => void;
+}
+
+export function DashboardNavbar({ openMobileMenu }: DashboardNavbarProps) {
   const { user, logout } = useAuth()
   const router = useRouter()
 
@@ -32,7 +35,14 @@ export function DashboardNavbar() {
       <div className="container mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-2">
-            <SidebarTrigger className="md:hidden" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="md:hidden" 
+              onClick={openMobileMenu}
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
             <Link href="/dashboard" className="flex items-center gap-2">
               <BrandConnectLogo className="h-8 w-8" />
               <span className="font-bold text-xl">BrandConnect</span>
