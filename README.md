@@ -78,62 +78,7 @@ Creators and Brands can initiate direct messaging.
 
 Messaging is confined to interested parties to ensure relevance.
 
-🗃️ Database Schema
-1. User
-id: Unique identifier
 
-firstName: User's first name
-
-lastName: User's last name
-
-email: User's email address
-
-phone: Contact number
-
-password: Encrypted password
-
-role: Enum (CREATOR or BRAND)
-
-accessLevel: Access privileges
-
-documentPath: Path to uploaded documents
-
-2. Campaign
-id: Unique identifier
-
-title: Campaign title
-
-description: Detailed information
-
-imageUrl: Visual representation
-
-category: Campaign category
-
-startDate: Commencement date
-
-endDate: Conclusion date
-
-creator: Reference to the creator (User)
-
-3. Interest
-id: Unique identifier
-
-brand: Reference to the brand (User)
-
-campaign: Reference to the campaign
-
-timestamp: Date and time of interest expression
-
-4. Message
-id: Unique identifier
-
-sender: Reference to the sender (User)
-
-receiver: Reference to the receiver (User)
-
-content: Message content
-
-timestamp: Date and time of message
 
 🌐 API Endpoints
 Authentication
@@ -158,21 +103,6 @@ POST /api/messages/send: Send a message to an interested party.
 
 GET /api/messages/conversations/{userId}: Retrieve conversation with a specific user.
 
-🧱 System Architecture
-pgsql
-Copy
-Edit
-Frontend (Next.js)
-    |
-    |-- Axios HTTP Requests
-    |
-Backend (Spring Boot)
-    |
-    |-- Controllers (Handle HTTP requests)
-    |-- Services (Business logic)
-    |-- Repositories (Data access)
-    |
-Database (PostgreSQL/MySQL)
 Frontend communicates with the Backend via RESTful APIs.
 
 Backend processes requests, applies business logic, and interacts with the Database.
