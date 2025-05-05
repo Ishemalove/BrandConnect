@@ -1,0 +1,7 @@
+<svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg">
+  <rect width="400" height="200" fill="#f0f0f0"/>
+  <text x="200" y="100" font-family="Arial" font-size="24" fill="#999999" text-anchor="middle" dominant-baseline="middle">Campaign Image</text>
+  <path d="M160,80 L240,80 L240,120 L160,120 Z" fill="none" stroke="#999999" stroke-width="2"/>
+  <path d="M180,100 L200,80 L220,100 L240,80" fill="none" stroke="#999999" stroke-width="2"/>
+  <circle cx="180" cy="90" r="5" fill="#999999"/>
+</svg>
