@@ -1,132 +1,118 @@
-🎯 Project Overview: BrandConnect
-BrandConnect is a full-stack web application designed to facilitate collaboration between Creators and Brands through campaign creation, interest expression, and direct messaging. The platform ensures secure authentication and role-based access control, providing tailored experiences for each user type.
+**BrandConnect Project Overview**
 
-🧰 Technology Stack
-Frontend:
-Framework: Next.js (React-based framework)
+**Project Name:** BrandConnect
 
-Styling: Tailwind CSS
+**Project Type:** Full-Stack Web Application
 
-State Management: React Hooks
+---
 
-HTTP Client: Axios
+**🌐 Purpose:**
+BrandConnect is a collaborative platform that connects **brands** with **creators**. Creators can launch marketing campaigns, and brands can browse campaigns that align with their values and express interest. Both parties can communicate directly if mutual interest is shown. The system is built with role-based access and secure authentication.
 
-Routing: Next.js Routing
+---
 
-Notifications: react-hot-toast
+**🛠️ Tech Stack:**
 
-Backend:
-Framework: Spring Boot
+**Frontend:**
 
-Security: Spring Security with JWT Authentication
+* Framework: Next.js (React-based framework)
+* Styling: Tailwind CSS
+* HTTP Requests: Axios
+* Routing: Next.js routing
+* Notifications: react-hot-toast
 
-Data Access: Spring Data JPA (Hibernate)
+**Backend:**
 
-Database: PostgreSQL or MySQL
+* Language: Java (Spring Boot)
+* Frameworks/Libraries: Spring Web, Spring Security, Spring Data JPA
+* Database: PostgreSQL (or MySQL)
+* Authentication: JWT-based security
+* Validation: Bean Validation
+* Dev Tools: Spring Boot DevTools, Lombok
 
-Utilities: Lombok, Bean Validation
+---
 
-👥 User Roles & Permissions
-1. Creator
-Capabilities:
+**🔐 Roles & Permissions:**
 
-Create and manage campaigns.
+* **CREATOR:** Can create campaigns, view brands that showed interest, and message brands.
+* **BRAND:** Can view available campaigns and show interest in specific ones. Can also message creators upon mutual interest.
 
-View brands that have shown interest in their campaigns.
+---
 
-Engage in messaging with interested brands.
+**📄 Key Features:**
 
-2. Brand
-Capabilities:
+* Secure JWT-based login and registration
+* Role-based dashboards for creators and brands
+* Campaign creation and interest management
+* Messaging system for interested users
 
-Browse and view available campaigns.
+---
 
-Express interest in specific campaigns.
+**🔢 Backend Endpoints:**
 
-Communicate with creators of campaigns they are interested in.
+* POST `/api/auth/register` - Register user (Brand or Creator)
+* POST `/api/auth/login` - Login and receive JWT
+* GET `/api/campaigns` - Public campaigns listing
+* POST `/api/campaigns` - (Creator only) Create new campaign
+* GET `/api/campaigns/creator` - View campaigns created by the creator
+* POST `/api/campaigns/{id}/interest` - (Brand only) Show interest
+* GET `/api/interests/me` - (Brand only) View campaigns the brand has shown interest in
+* POST `/api/messages` - Send message between matched users
 
-🔐 Authentication & Authorization
-Registration & Login: Secure endpoints for user registration and authentication.
+---
 
-JWT Tokens: Issued upon successful login, stored in localStorage on the frontend.
+**💻 Frontend Pages:**
 
-Role-Based Access Control: Backend endpoints secured based on user roles.
+* Landing Page (hero + CTA)
+* Login / Register
+* Creator Dashboard
+* Brand Dashboard
+* Campaign Page
+* Messaging Interface
+* 404 NotFound Page
 
-📦 Core Features
-Campaign Management
-Creators can:
+---
 
-Create new campaigns with details like title, description, category, and duration.
+**📂 JPA Entities (Database Models):**
 
-Manage existing campaigns.
+* **User**: id, name, email, password, role
+* **Campaign**: id, title, description, imageUrl, category, startDate, endDate, creator (User)
+* **Interest**: id, brand (User), campaign, timestamp
+* **Message**: id, sender (User), receiver (User), content, timestamp
 
-Brands can:
+---
 
-View a list of available campaigns.
+**📁 Project Structure:**
 
-Filter campaigns based on categories or other criteria.
+**Backend**
 
-Interest Expression
-Brands can express interest in campaigns.
+```
+backend/
+├── src/main/java/com/brandconnect
+│   ├── controller
+│   ├── service
+│   ├── model
+│   ├── repository
+│   ├── config
+│   └── BrandConnectApplication.java
+```
 
-Creators can view which brands have shown interest in their campaigns.
+**Frontend**
 
-Messaging System
-Once a brand expresses interest in a campaign:
+```
+frontend/
+├── components/
+├── pages/
+├── context/
+├── services/
+└── app/
+```
 
-Creators and Brands can initiate direct messaging.
+---
 
-Messaging is confined to interested parties to ensure relevance.
+**🚀 Deployment Tips:**
 
+* Backend: Enable CORS, use application.properties for database and JWT config.
+* Frontend: Use environment variables for API base URL, setup proxy or CORS support.
 
-
-🌐 API Endpoints
-Authentication
-POST /api/auth/register: Register a new user.
-
-POST /api/auth/login: Authenticate user and return JWT.
-
-Campaigns
-GET /api/campaigns: Retrieve all campaigns (Brands only).
-
-POST /api/campaigns: Create a new campaign (Creators only).
-
-GET /api/campaigns/mine: Retrieve campaigns created by the logged-in creator.
-
-Interests
-POST /api/campaigns/{id}/interest: Express interest in a campaign (Brands only).
-
-GET /api/interests/mine: View interests received on creator's campaigns.
-
-Messaging
-POST /api/messages/send: Send a message to an interested party.
-
-GET /api/messages/conversations/{userId}: Retrieve conversation with a specific user.
-
-Frontend communicates with the Backend via RESTful APIs.
-
-Backend processes requests, applies business logic, and interacts with the Database.
-
-Database stores persistent data for users, campaigns, interests, and messages.
-
-🚀 Deployment Considerations
-Frontend:
-
-Build the Next.js application using next build.
-
-Deploy static assets to a hosting service or integrate with the backend server.
-
-Backend:
-
-Package the Spring Boot application as a JAR or WAR file.
-
-Deploy to a server or cloud platform.
-
-Ensure environment variables and database configurations are set appropriately.
-
-Integration:
-
-Configure CORS in the Spring Boot application to allow requests from the frontend domain.
-
-Secure API endpoints and manage JWT token validation.
-
+---
