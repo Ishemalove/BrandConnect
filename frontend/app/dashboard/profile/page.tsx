@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Pencil, Save, Instagram, Twitter, Youtube, Globe } from "lucide-react"
+import { jsPDF } from "jspdf"
 
 export default function ProfilePage() {
   const { user } = useAuth()
@@ -38,10 +39,32 @@ export default function ProfilePage() {
     setIsEditing(false)
   }
 
+  const handleDownloadProfile = () => {
+    const doc = new jsPDF()
+    doc.setFontSize(18)
+    doc.text("Profile Information", 10, 10)
+    doc.setFontSize(12)
+    doc.text(`Full Name: ${profileData.name}`, 10, 30)
+    doc.text(`Email: ${profileData.email}`, 10, 40)
+    doc.text(`Role: ${isBrand ? "Brand" : "Creator"}`, 10, 50)
+    if (!isBrand) {
+      doc.text(`Instagram: ${profileData.socialLinks.instagram || "-"}`, 10, 60)
+      doc.text(`Twitter: ${profileData.socialLinks.twitter || "-"}`, 10, 70)
+      doc.text(`YouTube: ${profileData.socialLinks.youtube || "-"}`, 10, 80)
+      doc.text(`Website: ${profileData.socialLinks.website || "-"}`, 10, 90)
+    } else {
+      doc.text(`Website: ${profileData.website || "-"}`, 10, 60)
+      doc.text(`Company Name: ${profileData.companyName || "-"}`, 10, 70)
+    }
+    doc.text(`Bio: ${profileData.bio || "-"}`, 10, 100)
+    doc.save("profile.pdf")
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">My Profile</h1>
+        <div className="flex gap-2">
         <Button onClick={isEditing ? handleSave : () => setIsEditing(true)}>
           {isEditing ? (
             <>
@@ -55,6 +78,10 @@ export default function ProfilePage() {
             </>
           )}
         </Button>
+          <Button variant="outline" onClick={handleDownloadProfile}>
+            Download
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

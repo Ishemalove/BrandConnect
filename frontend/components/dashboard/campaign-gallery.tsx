@@ -13,6 +13,7 @@ import { useToast } from "@/components/ui/use-toast"
 import { campaignService, applicationService } from "@/lib/api-service"
 import { useAuth } from "@/components/auth-provider"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
+import { Pagination } from "@/components/ui/pagination"
 
 interface Campaign {
   id: number;
@@ -34,15 +35,34 @@ interface Campaign {
   saved?: boolean;
 }
 
-export function CampaignGallery() {
+interface CampaignGalleryProps {
+  searchQuery?: string;
+  sortBy?: string;
+  category?: string;
+  page?: number;
+  itemsPerPage?: number;
+  onPageChange?: (page: number) => void;
+}
+
+export function CampaignGallery({ 
+  searchQuery = "", 
+  sortBy = "newest", 
+  category = "all", 
+  page = 1, 
+  itemsPerPage = 6,
+  onPageChange
+}: CampaignGalleryProps) {
   const { user } = useAuth()
   const { toast } = useToast()
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [filteredCampaigns, setFilteredCampaigns] = useState<Campaign[]>([])
   const [savedCampaigns, setSavedCampaigns] = useState<number[]>([])
   const [loading, setLoading] = useState(true)
   const [saveEnabled, setSaveEnabled] = useState(true)
   const [consecutiveErrors, setConsecutiveErrors] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
 
   // Separate function to fetch saved campaigns to avoid blocking the main campaign data load
   const fetchSavedCampaignIds = async () => {
@@ -95,9 +115,26 @@ export function CampaignGallery() {
     const fetchCampaigns = async () => {
       try {
         setLoading(true);
-        const response = await campaignService.getCampaigns();
+        const params = {
+          sort: sortBy,
+          category: category !== 'all' ? category : undefined,
+          page,
+          size: itemsPerPage
+        };
+        
+        const response = await campaignService.getCampaigns(params);
         if (response && response.data) {
-          setCampaigns(response.data);
+          setCampaigns(response.data.content || response.data);
+          
+          // Handle pagination data if available
+          if (response.data.totalElements) {
+            setTotalItems(response.data.totalElements);
+            setTotalPages(response.data.totalPages || Math.ceil(response.data.totalElements / itemsPerPage));
+          } else {
+            // If pagination data not available, use array length
+            setTotalItems(response.data.length);
+            setTotalPages(Math.ceil(response.data.length / itemsPerPage));
+          }
         }
         
         // Fetch saved campaigns for creators
@@ -117,7 +154,26 @@ export function CampaignGallery() {
     };
 
     fetchCampaigns();
-  }, [user, toast]);
+  }, [user, toast, sortBy, category, page, itemsPerPage]);
+
+  // Apply search filter client-side
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredCampaigns(campaigns);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = campaigns.filter(
+      (campaign) => 
+        campaign.title.toLowerCase().includes(query) ||
+        campaign.description.toLowerCase().includes(query) ||
+        campaign.category.toLowerCase().includes(query) ||
+        (campaign.brand?.name && campaign.brand.name.toLowerCase().includes(query))
+    );
+    
+    setFilteredCampaigns(filtered);
+  }, [searchQuery, campaigns]);
 
   const toggleSave = async (campaignId: number, event: React.MouseEvent) => {
     event.stopPropagation();
@@ -254,167 +310,189 @@ export function CampaignGallery() {
     }
   };
 
+  // Display filtered campaigns or all campaigns if no search query
+  const displayCampaigns = searchQuery ? filteredCampaigns : campaigns;
+
   if (loading) {
-    return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[1, 2, 3, 4, 5, 6].map(i => (
-        <Card key={i} className="overflow-hidden">
-          <div className="h-48 bg-muted animate-pulse" />
-          <CardContent className="p-4">
-            <div className="h-4 w-1/4 bg-muted rounded animate-pulse mb-2" />
-            <div className="h-6 bg-muted rounded animate-pulse mb-4" />
-            <div className="h-4 bg-muted rounded animate-pulse" />
-            <div className="h-4 w-3/4 bg-muted rounded animate-pulse mt-2" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    return (
+      <div className="space-y-4">
+        {[...Array(3)].map((_, index) => (
+          <Card key={index} className="overflow-hidden animate-pulse">
+            <div className="aspect-video bg-gray-200 dark:bg-gray-800" />
+            <CardContent className="p-4 space-y-3">
+              <div className="h-6 bg-gray-200 dark:bg-gray-800 rounded w-2/3" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-full" />
+              <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-4/5" />
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
   }
 
-  // If no campaigns are available
-  if (!campaigns || campaigns.length === 0) {
-    return <div className="text-center p-8">
-      <p className="text-muted-foreground mb-4">No campaigns available at this time.</p>
-      <p className="text-sm">Check back later for new opportunities!</p>
-    </div>
+  if (displayCampaigns.length === 0) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-lg text-muted-foreground">
+          {searchQuery ? "No campaigns found matching your search." : "No campaigns available at this time."}
+        </p>
+      </div>
+    );
   }
 
   return (
-    <>
+    <div className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {campaigns.map((campaign) => (
-          <Card
-            key={campaign.id}
-            className="overflow-hidden cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => setSelectedCampaign(campaign)}
-          >
-            <div className="relative h-48 w-full">
+        {displayCampaigns.map((campaign) => (
+          <Card key={campaign.id} className="overflow-hidden cursor-pointer transition-shadow hover:shadow-md" onClick={() => setSelectedCampaign(campaign)}>
+            <div className="aspect-video relative bg-muted">
               <ImageWithFallback
-                src={campaign.imageUrl || "/placeholder.svg"}
-                alt={campaign.title || "Campaign"}
+                src={campaign.imageUrl || "/placeholder.jpg"}
+                alt={campaign.title}
                 fill
-                className="object-cover"
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                fallbackSrc="/placeholder.svg"
+                className="object-cover"
+                fallbackSrc="/placeholder.jpg"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              <div className="absolute bottom-0 left-0 right-0 p-4">
-                <Badge className="mb-2">{campaign.category || "Uncategorized"}</Badge>
-                <h3 className="text-lg font-semibold text-white">{campaign.title || "Untitled Campaign"}</h3>
+              <div className="absolute top-2 left-2">
+                <Badge variant="secondary" className="text-xs capitalize">
+                  {campaign.category}
+                </Badge>
               </div>
               {user?.role === "CREATOR" && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={`absolute top-2 right-2 rounded-full bg-background/80 hover:bg-background ${
-                  savedCampaigns.includes(campaign.id) ? "text-red-500" : "text-muted-foreground"
-                  } ${!saveEnabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                onClick={(e) => toggleSave(campaign.id, e)}
-                  disabled={!saveEnabled}
-              >
-                <Heart className={`h-5 w-5 ${savedCampaigns.includes(campaign.id) ? "fill-current" : ""}`} />
-                  <span className="sr-only">{saveEnabled ? 'Save' : 'Save (Disabled)'}</span>
-              </Button>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className={`absolute top-2 right-2 rounded-full bg-background/80 backdrop-blur-sm ${
+                    savedCampaigns.includes(campaign.id) ? "text-red-500" : "text-muted-foreground"
+                  }`}
+                  onClick={(e) => toggleSave(campaign.id, e)}
+                >
+                  <Heart className={`h-4 w-4 ${savedCampaigns.includes(campaign.id) ? "fill-current" : ""}`} />
+                </Button>
               )}
             </div>
             <CardContent className="p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="h-8 w-8 rounded-full overflow-hidden relative">
-                  <ImageWithFallback
-                    src={campaign.brand?.logo || "/placeholder.svg"}
-                    alt={campaign.brand?.name || "Brand"}
-                    fill
-                    className="object-cover"
-                    fallbackSrc="/placeholder.svg"
+              <h3 className="font-semibold tracking-tight mb-2 line-clamp-1">{campaign.title}</h3>
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{campaign.description}</p>
+              <div className="flex items-center gap-2">
+                {campaign.brand?.logo ? (
+                  <Image
+                    src={campaign.brand.logo}
+                    alt={campaign.brand.name}
+                    width={20}
+                    height={20}
+                    className="rounded-full"
                   />
-                </div>
-                <span className="font-medium">{campaign.brand?.name || "Brand"}</span>
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-muted" />
+                )}
+                <span className="text-xs text-muted-foreground">{campaign.brand?.name || "Brand"}</span>
               </div>
-              <p className="text-sm text-muted-foreground line-clamp-2">{campaign.description || "No description"}</p>
             </CardContent>
             <CardFooter className="px-4 py-3 border-t flex justify-between text-xs text-muted-foreground">
-              <div className="flex items-center gap-3">
-                <span className="flex items-center gap-1">
-                  <Eye className="h-3.5 w-3.5" />
-                  {campaign.views || 0}
-                </span>
-                <span className="flex items-center gap-1">
-                  <MessageSquare className="h-3.5 w-3.5" />
-                  {campaign.applicants || 0}
+              <div className="flex items-center gap-2">
+                <Eye className="h-3 w-3" />
+                <span>{campaign.views || 0}</span>
+                <MessageSquare className="h-3 w-3 ml-2" />
+                <span>{campaign.applicants || 0}</span>
+              </div>
+              <div className="flex items-center">
+                <Clock className="h-3 w-3 mr-1" />
+                <span>
+                  Ends {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : "Soon"}
                 </span>
               </div>
-              <span className="flex items-center gap-1">
-                <Clock className="h-3.5 w-3.5" />
-                Ends {campaign.endDate ? new Date(campaign.endDate).toLocaleDateString() : "N/A"}
-              </span>
             </CardFooter>
           </Card>
         ))}
       </div>
+      
+      {totalPages > 1 && (
+        <Pagination 
+          currentPage={page} 
+          totalPages={totalPages} 
+          onPageChange={onPageChange || ((newPage) => console.log("Page changed to", newPage))} 
+        />
+      )}
 
       {selectedCampaign && (
         <Dialog open={!!selectedCampaign} onOpenChange={() => setSelectedCampaign(null)}>
-          <DialogContent className="max-w-3xl">
+          <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>{selectedCampaign.title || "Untitled Campaign"}</DialogTitle>
-              <DialogDescription>by {selectedCampaign.brand?.name || "Brand"}</DialogDescription>
+              <DialogTitle>{selectedCampaign.title}</DialogTitle>
+              <DialogDescription>{selectedCampaign.description}</DialogDescription>
             </DialogHeader>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="relative h-64 rounded-lg overflow-hidden">
+            <div className="space-y-4">
+              <div className="aspect-video relative rounded-md overflow-hidden">
                 <ImageWithFallback
-                  src={selectedCampaign.imageUrl || "/placeholder.svg"}
-                  alt={selectedCampaign.title || "Campaign"}
+                  src={selectedCampaign.imageUrl || "/placeholder.jpg"}
+                  alt={selectedCampaign.title}
                   fill
                   className="object-cover"
-                  fallbackSrc="/placeholder.svg"
+                  fallbackSrc="/placeholder.jpg"
                 />
               </div>
-              <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <h4 className="text-sm font-medium">Description</h4>
-                  <p className="text-sm text-muted-foreground">{selectedCampaign.description || "No description provided."}</p>
+                  <h4 className="text-sm font-medium">Brand</h4>
+                  <p className="text-sm text-muted-foreground">{selectedCampaign.brand?.name || "Unknown"}</p>
                 </div>
+                <div>
+                  <h4 className="text-sm font-medium">Category</h4>
+                  <p className="text-sm text-muted-foreground capitalize">{selectedCampaign.category}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium">Budget</h4>
+                  <p className="text-sm text-muted-foreground">{selectedCampaign.budget || "Not specified"}</p>
+                </div>
+                <div>
+                  <h4 className="text-sm font-medium">Timeline</h4>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedCampaign.startDate && selectedCampaign.endDate
+                      ? `${new Date(selectedCampaign.startDate).toLocaleDateString()} - ${new Date(
+                          selectedCampaign.endDate,
+                        ).toLocaleDateString()}`
+                      : "Not specified"}
+                  </p>
+                </div>
+              </div>
+              {selectedCampaign.requirements && (
                 <div>
                   <h4 className="text-sm font-medium">Requirements</h4>
-                  <p className="text-sm text-muted-foreground">{selectedCampaign.requirements || "No specific requirements"}</p>
+                  <p className="text-sm text-muted-foreground">{selectedCampaign.requirements}</p>
                 </div>
-                <div className="flex justify-between">
-                  <div>
-                    <h4 className="text-sm font-medium">Campaign Category</h4>
-                    <p className="text-sm text-muted-foreground">{selectedCampaign.category || "Uncategorized"}</p>
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-medium">Deadline</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {selectedCampaign.endDate ? new Date(selectedCampaign.endDate).toLocaleDateString() : "No deadline"}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
-            {user?.role === "CREATOR" && (
-            <div className="flex justify-end gap-3 mt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  toggleSave(selectedCampaign.id, { stopPropagation: () => {} } as React.MouseEvent)
-                }}
-                  disabled={!saveEnabled}
-                  className={!saveEnabled ? "opacity-50 cursor-not-allowed" : ""}
-              >
-                <Heart
-                  className={`h-4 w-4 mr-2 ${
-                    savedCampaigns.includes(selectedCampaign.id) ? "fill-red-500 text-red-500" : ""
-                  }`}
-                />
-                {savedCampaigns.includes(selectedCampaign.id) ? "Saved" : "Save"}
-                  {!saveEnabled && " (Disabled)"}
-              </Button>
-                <Button onClick={() => applyToCampaign(selectedCampaign.id)}>Apply Now</Button>
+            <div className="flex gap-2">
+              {user?.role === "CREATOR" && (
+                <>
+                  <Button className="flex-1" onClick={() => applyToCampaign(selectedCampaign.id)}>
+                    Apply Now
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className={savedCampaigns.includes(selectedCampaign.id) ? "text-red-500" : ""}
+                    onClick={(e) => toggleSave(selectedCampaign.id, e)}
+                  >
+                    <Heart
+                      className={`h-4 w-4 mr-2 ${
+                        savedCampaigns.includes(selectedCampaign.id) ? "fill-current" : ""
+                      }`}
+                    />
+                    {savedCampaigns.includes(selectedCampaign.id) ? "Saved" : "Save"}
+                  </Button>
+                </>
+              )}
+              {user?.role === "BRAND" && (
+                <Button className="flex-1" asChild>
+                  <a href={`/dashboard/campaigns/${selectedCampaign.id}`}>View Details</a>
+                </Button>
+              )}
             </div>
-            )}
           </DialogContent>
         </Dialog>
       )}
-    </>
-  )
+    </div>
+  );
 }

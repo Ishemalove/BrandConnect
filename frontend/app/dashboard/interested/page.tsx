@@ -11,6 +11,7 @@ import { Search, Filter, MessageSquare, CheckCircle, XCircle } from "lucide-reac
 import { applicationService, profileViewService } from "@/lib/api-service"
 import { useToast } from "@/components/ui/use-toast"
 import { useRouter } from "next/navigation"
+import { MessageDialog } from "@/components/ui/message-dialog"
 
 export default function InterestedCreatorsPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -267,6 +268,8 @@ export default function InterestedCreatorsPage() {
 function ApplicationCard({ application, onStatusUpdate }) {
   const router = useRouter()
   const { toast } = useToast()
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false)
+  
   // Extract creator and campaign data from application
   const creator = application.creator || {}
   const campaign = application.campaign || {}
@@ -356,44 +359,44 @@ function ApplicationCard({ application, onStatusUpdate }) {
   
   return (
     <Card key={application.id} className="overflow-hidden">
-                <div className="flex flex-col md:flex-row">
-                  <div className="p-6 flex items-start space-x-4 flex-1">
-                    <Avatar className="h-12 w-12">
+      <div className="flex flex-col md:flex-row">
+        <div className="p-6 flex items-start space-x-4 flex-1">
+          <Avatar className="h-12 w-12">
             <AvatarImage src={avatar} alt={name} />
             <AvatarFallback>{name.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="space-y-2">
-                      <div>
+          </Avatar>
+          <div className="space-y-2">
+            <div>
               <h3 className="font-semibold">{name}</h3>
               <p className="text-sm text-muted-foreground">{username}</p>
-                      </div>
-                      <div className="flex flex-wrap gap-1">
+            </div>
+            <div className="flex flex-wrap gap-1">
               {interests.map((interest) => (
-                          <Badge key={interest} variant="secondary" className="text-xs">
-                            {interest}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+                <Badge key={interest} variant="secondary" className="text-xs">
+                  {interest}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </div>
 
-                  <div className="p-6 border-t md:border-t-0 md:border-l border-border flex flex-col justify-between bg-muted/30 w-full md:w-64">
-                    <div className="space-y-2 mb-4">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Followers:</span>
+        <div className="p-6 border-t md:border-t-0 md:border-l border-border flex flex-col justify-between bg-muted/30 w-full md:w-64">
+          <div className="space-y-2 mb-4">
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Followers:</span>
               <span className="text-sm font-medium">{followers}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Engagement:</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Engagement:</span>
               <span className="text-sm font-medium">{engagement}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">Campaign:</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-sm text-muted-foreground">Campaign:</span>
               <span className="text-sm font-medium truncate max-w-[120px]">{campaignTitle}</span>
-                      </div>
-                    </div>
+            </div>
+          </div>
 
-                    <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2">
             <Badge className={`self-start ${getBadgeStyle(status)}`}>
               {formatStatus(status)}
             </Badge>
@@ -419,22 +422,38 @@ function ApplicationCard({ application, onStatusUpdate }) {
             )}
             
             {(status !== "PENDING" && status !== "NEW") && (
-                      <div className="flex gap-2">
+              <div className="flex gap-2">
                 <Button 
                   className="flex-1" 
                   size="sm"
                   onClick={handleViewProfile}
                 >
-                          View Profile
-                        </Button>
-                        <Button variant="outline" size="icon" className="h-8 w-8">
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                      </div>
+                  View Profile
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMessageDialogOpen(true);
+                  }}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                </Button>
+              </div>
             )}
-                    </div>
-                  </div>
-                </div>
-              </Card>
+          </div>
+        </div>
+      </div>
+      
+      {/* Message Dialog */}
+      <MessageDialog
+        open={messageDialogOpen}
+        onOpenChange={setMessageDialogOpen}
+        recipientId={creator.id ? creator.id.toString() : ""}
+        recipientName={name}
+      />
+    </Card>
   )
 }

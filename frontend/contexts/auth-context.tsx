@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { authService } from "@/lib/api-service"
 
 interface User {
-  id: string
+  id: number
   email: string
   username: string
   roles: string[]
@@ -43,8 +43,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     try {
       setLoading(true)
-      const userData = await authService.login(email, password)
-      setUser(userData)
+      const response = await authService.login(email, password)
+      // Use the numeric id from response.data.user.id
+      setUser({
+        id: response.user.id,
+        email: response.user.email,
+        username: response.user.name,
+        roles: [response.user.role],
+        token: response.token,
+      })
       router.push("/dashboard")
     } catch (error) {
       console.error("Login failed:", error)

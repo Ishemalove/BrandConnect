@@ -15,15 +15,6 @@ export function LandingCTA() {
               Get Started for Free
             </Button>
           </Link>
-          <Link href="/explore">
-            <Button
-              size="lg"
-              variant="outline"
-              className="w-full sm:w-auto border-primary-foreground text-primary-foreground hover:bg-primary-foreground hover:text-primary"
-            >
-              Explore Campaigns
-            </Button>
-          </Link>
         </div>
       </div>
     </section>

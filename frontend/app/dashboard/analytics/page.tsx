@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BarChart, LineChart, PieChart, Loader2 } from "lucide-react"
 import { statisticsService } from "@/lib/api-service"
 import { useToast } from "@/components/ui/use-toast"
+import { ResponsiveContainer, BarChart as ReBarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend, LineChart as ReLineChart, Line, PieChart as RePieChart, Pie, Cell } from 'recharts';
 
 export default function AnalyticsPage() {
   const [timeRange, setTimeRange] = useState("30days")
@@ -18,6 +19,7 @@ export default function AnalyticsPage() {
   })
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
+  const [performanceStats, setPerformanceStats] = useState<any>({});
   
   // Fetch statistics from the backend
   useEffect(() => {
@@ -60,6 +62,7 @@ export default function AnalyticsPage() {
               change: data.roiChange || 0
             }
           })
+          setPerformanceStats(data)
         }
       } catch (error) {
         console.error("Error fetching analytics data:", error)
@@ -242,10 +245,24 @@ export default function AnalyticsPage() {
               <CardDescription>View the performance of your campaigns over the selected time period.</CardDescription>
             </CardHeader>
             <CardContent className="h-[400px] flex items-center justify-center bg-muted/20">
+              {performanceStats.campaignPerformance && performanceStats.campaignPerformance.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <ReLineChart data={performanceStats.campaignPerformance} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="views" stroke="#8884d8" name="Views" />
+                    <Line type="monotone" dataKey="applications" stroke="#82ca9d" name="Applications" />
+                    <Line type="monotone" dataKey="engagement" stroke="#ff69b4" name="Engagement" />
+                  </ReLineChart>
+                </ResponsiveContainer>
+              ) : (
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Campaign Performance Chart</p>
-                <p className="text-xs text-muted-foreground">(Chart visualization would be here)</p>
+                  <p className="text-sm text-muted-foreground">No campaign performance data available.</p>
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -257,10 +274,24 @@ export default function AnalyticsPage() {
               <CardDescription>Compare the performance metrics across different campaigns.</CardDescription>
             </CardHeader>
             <CardContent className="h-[400px] flex items-center justify-center bg-muted/20">
+              {performanceStats.campaignPerformance && performanceStats.campaignPerformance.length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <ReBarChart data={performanceStats.campaignPerformance} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="views" fill="#8884d8" name="Views" />
+                    <Bar dataKey="applications" fill="#82ca9d" name="Applications" />
+                    <Bar dataKey="engagement" fill="#ff69b4" name="Engagement" />
+                  </ReBarChart>
+                </ResponsiveContainer>
+              ) : (
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Campaign Metrics Chart</p>
-                <p className="text-xs text-muted-foreground">(Chart visualization would be here)</p>
+                  <p className="text-sm text-muted-foreground">No campaign metrics data available.</p>
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -272,10 +303,33 @@ export default function AnalyticsPage() {
               <CardDescription>Understand the demographics of your audience across campaigns.</CardDescription>
             </CardHeader>
             <CardContent className="h-[400px] flex items-center justify-center bg-muted/20">
+              {performanceStats.categoryDistribution && Object.keys(performanceStats.categoryDistribution).length > 0 ? (
+                <ResponsiveContainer width="100%" height={350}>
+                  <RePieChart>
+                    <Pie
+                      data={Object.entries(performanceStats.categoryDistribution).map(([name, value]) => ({ name, value }))}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={80}
+                      outerRadius={120}
+                      fill="#8884d8"
+                      label
+                    >
+                      {Object.entries(performanceStats.categoryDistribution).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={['#8884d8', '#82ca9d', '#ff69b4', '#ffc658', '#a4de6c', '#d0ed57'][index % 6]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </RePieChart>
+                </ResponsiveContainer>
+              ) : (
               <div className="text-center">
-                <p className="text-sm text-muted-foreground">Demographics Chart</p>
-                <p className="text-xs text-muted-foreground">(Chart visualization would be here)</p>
+                  <p className="text-sm text-muted-foreground">No demographics data available.</p>
               </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

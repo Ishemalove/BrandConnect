@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Instagram, Twitter, Youtube, Globe, Mail, MessageSquare } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { MessageDialog } from "@/components/ui/message-dialog"
 
 export default function CreatorProfilePage() {
   const params = useParams()
@@ -20,6 +21,7 @@ export default function CreatorProfilePage() {
   const [creator, setCreator] = useState(null)
   const [loading, setLoading] = useState(true)
   const creatorId = params.id
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false)
 
   useEffect(() => {
     const fetchCreator = async () => {
@@ -110,7 +112,10 @@ export default function CreatorProfilePage() {
             <Mail className="h-4 w-4 mr-2" />
             Contact
           </Button>
-          <Button size="sm">
+          <Button 
+            size="sm"
+            onClick={() => setMessageDialogOpen(true)}
+          >
             <MessageSquare className="h-4 w-4 mr-2" />
             Message
           </Button>
@@ -280,6 +285,13 @@ export default function CreatorProfilePage() {
           </Tabs>
         </div>
       </div>
+      
+      <MessageDialog
+        open={messageDialogOpen}
+        onOpenChange={setMessageDialogOpen}
+        recipientId={String(creatorId)}
+        recipientName={creator?.fullName || "Creator"}
+      />
     </div>
   )
 } 

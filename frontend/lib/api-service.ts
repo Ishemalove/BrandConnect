@@ -248,26 +248,28 @@ export const campaignService = {
     console.log('Fetching campaigns with params:', params);
     try {
       // Set a timeout of 10 seconds to prevent hanging requests
-      const response = await externalApi.get("/campaigns", { 
-        params,
-        timeout: 10000 
+      const requestPromise = api.get("/campaigns", { params });
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout')), 10000);
       });
-      console.log('Campaigns response:', response.data);
-      return response;
-    } catch (error: any) {
-      if (error.code === 'ECONNABORTED') {
-        console.error('Request timeout when fetching campaigns');
-      } else if (error.response) {
-        // The request was made and the server responded with a status code outside of 2xx
-        console.error('Error response from server:', error.response.status, error.response.data);
-      } else if (error.request) {
-        // The request was made but no response was received
-        console.error('No response received from server');
-      } else {
-        // Something happened in setting up the request
-        console.error('Error setting up request:', error.message);
-      }
-      throw error;
+      
+      return await Promise.race([requestPromise, timeoutPromise]) as any;
+    } catch (error) {
+      console.error("Error fetching campaigns:", error);
+      
+      // Create a better error object with user-friendly message
+      const enhancedError = error as any;
+      enhancedError.userMessage = "Failed to load campaigns. Please try again later.";
+      
+      // Default response for offline fallback (use empty array instead of null)
+      const defaultResponse = {
+        data: [],
+        status: "error",
+        message: "Failed to load campaigns, using fallback data"
+      };
+      
+      // Return the empty default response on failure
+      return { data: defaultResponse.data, status: "error" };
     }
   },
 
@@ -676,24 +678,96 @@ export const applicationService = {
   },
 }
 
-// Message services
+// Mock data for conversations
+const MOCK_CONVERSATIONS_KEY = 'brandconnect_mock_conversations';
+const MOCK_MESSAGES_KEY = 'brandconnect_mock_messages';
+
+// Add proper interfaces for the message service
+interface MockMessage {
+  id: string;
+  senderId: string;
+  content: string;
+  timestamp: string;
+}
+
+interface MockConversation {
+  id: string;
+  otherUser?: {
+    id: string;
+    name?: string;
+    avatar?: string;
+    online?: boolean;
+  };
+  recipient?: {
+    id: string;
+    name?: string;
+    avatar?: string;
+    online?: boolean;
+  };
+  lastMessage?: {
+    content: string;
+    timestamp: string;
+  };
+  unread?: boolean;
+}
+
+// Helper functions for mock data
+const getMockConversations = (): MockConversation[] => {
+  try {
+    const data = localStorage.getItem(MOCK_CONVERSATIONS_KEY);
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    console.error("Error reading mock conversations:", e);
+    return [];
+  }
+};
+
+const saveMockConversations = (conversations: MockConversation[]): void => {
+  try {
+    localStorage.setItem(MOCK_CONVERSATIONS_KEY, JSON.stringify(conversations));
+  } catch (e) {
+    console.error("Error saving mock conversations:", e);
+  }
+};
+
+const getMockMessages = (): Record<string, MockMessage[]> => {
+  try {
+    const data = localStorage.getItem(MOCK_MESSAGES_KEY);
+    return data ? JSON.parse(data) : {};
+  } catch (e) {
+    console.error("Error reading mock messages:", e);
+    return {};
+  }
+};
+
+const saveMockMessages = (messages: Record<string, MockMessage[]>): void => {
+  try {
+    localStorage.setItem(MOCK_MESSAGES_KEY, JSON.stringify(messages));
+  } catch (e) {
+    console.error("Error saving mock messages:", e);
+  }
+};
+
+// Message services - Uses local storage for now since backend API is not available
 export const messageService = {
   getConversations: async () => {
-    return api.get("/messages/conversations")
+    return api.get("/conversations");
   },
 
   getConversation: async (id: string) => {
-    return api.get(`/messages/conversations/${id}`)
+    return api.get(`/conversations/${id}`);
   },
 
   sendMessage: async (conversationId: string, content: string) => {
-    return api.post(`/messages/conversations/${conversationId}`, { content })
+    // The backend expects a POST to /conversations/{id}/messages with content as a request param
+    return api.post(`/conversations/${conversationId}/messages`, null, { params: { content } });
   },
 
   createConversation: async (recipientId: string, initialMessage: string) => {
-    return api.post("/messages/conversations", { recipientId, initialMessage })
+    // The backend expects a POST to /conversations with recipientId and initialMessage as request params
+    return api.post(`/conversations`, null, { params: { recipientId, initialMessage } });
   },
-}
+};
 
 // Statistics services
 export const statisticsService = {

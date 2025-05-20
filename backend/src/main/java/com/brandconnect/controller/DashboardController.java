@@ -215,4 +215,9 @@ public class DashboardController {
         }
         return getDashboardStats(authentication);
     }
+
+    @GetMapping("/performance")
+    public ResponseEntity<?> getPerformanceStats(Authentication authentication) {
+        return getDashboardStats(authentication);
+    }
 } 

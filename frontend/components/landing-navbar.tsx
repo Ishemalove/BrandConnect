@@ -29,6 +29,11 @@ export function LandingNavbar() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <Link href="/contact">
+            <Button variant="outline" size="sm">
+              Contact Us
+            </Button>
+          </Link>
           <Link href="/login">
             <Button variant="ghost" size="sm">
               Log in
