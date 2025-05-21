@@ -64,6 +64,7 @@ interface Campaign {
   startDate?: string;
   endDate?: string;
   category?: string;
+  imageEndpoint?: string;
 }
 
 export function DashboardOverview() {
@@ -303,7 +304,7 @@ export function DashboardOverview() {
                           <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
                             <div className="relative h-40">
                               <Image
-                                src={campaign.imageUrl || "/placeholder.svg"}
+                                src={campaign.imageEndpoint || "/placeholder.svg"}
                                 alt={campaign.title}
                                 fill
                                 className="object-cover"
@@ -439,7 +440,7 @@ export function DashboardOverview() {
                         <Card className="overflow-hidden hover:shadow-md transition-shadow cursor-pointer">
                           <div className="relative h-40">
                             <Image
-                              src={campaign.imageUrl || "/placeholder.svg"}
+                              src={campaign.imageEndpoint || "/placeholder.svg"}
                               alt={campaign.title}
                               fill
                               className="object-cover"

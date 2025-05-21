@@ -140,7 +140,7 @@ export default function CampaignDetailPage() {
         <div className="lg:col-span-2 space-y-6">
           <div className="relative h-64 sm:h-80 rounded-lg overflow-hidden">
             <Image 
-              src={campaign.imageUrl || "/placeholder.svg"} 
+              src={campaign.imageEndpoint || "/placeholder.svg"} 
               alt={campaign.title} 
               fill 
               className="object-cover"

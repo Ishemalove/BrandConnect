@@ -16,6 +16,7 @@ export default function ContactModal() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [subscribed, setSubscribed] = useState(false)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -29,6 +30,7 @@ export default function ContactModal() {
       message: formData.get("message"),
       subscribe: formData.get("subscribe") === "on"
     }
+    setSubscribed(data.subscribe)
     try {
       const res = await fetch("/api/contact", {
         method: "POST",
@@ -57,7 +59,9 @@ export default function ContactModal() {
         {submitted ? (
           <div className="text-green-600 text-center font-medium py-8">
             Thank you for reaching out! We'll get back to you soon.<br />
-            {" "}You have also been subscribed to our newsletter if you checked the box.
+            {subscribed && (
+              <>You have also been subscribed to our newsletter.</>
+            )}
             <DialogClose asChild>
               <Button className="mt-6 w-full" onClick={() => { setSubmitted(false); setOpen(false); }}>Close</Button>
             </DialogClose>

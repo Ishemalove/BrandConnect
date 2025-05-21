@@ -33,6 +33,7 @@ interface Campaign {
   views?: number;
   applicants?: number;
   saved?: boolean;
+  imageEndpoint?: string;
 }
 
 interface CampaignGalleryProps {
@@ -347,7 +348,7 @@ export function CampaignGallery({
           <Card key={campaign.id} className="overflow-hidden cursor-pointer transition-shadow hover:shadow-md" onClick={() => setSelectedCampaign(campaign)}>
             <div className="aspect-video relative bg-muted">
               <ImageWithFallback
-                src={campaign.imageUrl || "/placeholder.jpg"}
+                src={campaign.imageEndpoint || "/placeholder.jpg"}
                 alt={campaign.title}
                 fill
                 sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -426,7 +427,7 @@ export function CampaignGallery({
             <div className="space-y-4">
               <div className="aspect-video relative rounded-md overflow-hidden">
                 <ImageWithFallback
-                  src={selectedCampaign.imageUrl || "/placeholder.jpg"}
+                  src={selectedCampaign.imageEndpoint || "/placeholder.jpg"}
                   alt={selectedCampaign.title}
                   fill
                   className="object-cover"

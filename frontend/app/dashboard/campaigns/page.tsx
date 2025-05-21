@@ -28,6 +28,7 @@ interface Campaign {
   requirements: string;
   deliverables: string;
   campaignType: string;
+  imageEndpoint?: string;
 }
 
 export default function CampaignsPage() {
@@ -345,7 +346,7 @@ export default function CampaignsPage() {
                     <CardHeader className="p-4 pb-2">
                       <div className="relative w-full h-40 mb-2">
                         <ImageWithFallback
-                          src={campaign.imageUrl || "/placeholder.jpg"}
+                          src={campaign.imageEndpoint || "/placeholder.jpg"}
                           alt={campaign.title}
                           fill
                           className="object-cover rounded-md"
@@ -400,7 +401,7 @@ export default function CampaignsPage() {
                     <CardHeader className="p-4 pb-2">
                       <div className="relative w-full h-40 mb-2">
                         <ImageWithFallback
-                          src={campaign.imageUrl || "/placeholder.jpg"}
+                          src={campaign.imageEndpoint || "/placeholder.jpg"}
                           alt={campaign.title}
                           fill
                           className="object-cover rounded-md"
@@ -455,7 +456,7 @@ export default function CampaignsPage() {
                     <CardHeader className="p-4 pb-2">
                       <div className="relative w-full h-40 mb-2">
                         <ImageWithFallback
-                          src={campaign.imageUrl || "/placeholder.jpg"}
+                          src={campaign.imageEndpoint || "/placeholder.jpg"}
                           alt={campaign.title}
                           fill
                           className="object-cover rounded-md"

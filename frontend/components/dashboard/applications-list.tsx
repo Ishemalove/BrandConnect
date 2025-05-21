@@ -32,6 +32,7 @@ interface Application {
       name: string;
       logo?: string;
     }
+    imageEndpoint?: string;
   };
   creator?: {
     id: number;
@@ -442,7 +443,7 @@ export function ApplicationsList({ initialApplications }: ApplicationsListProps)
               <div className="flex flex-col md:flex-row">
                 <div className="relative w-full md:w-48 h-48 md:h-auto">
                   <ImageWithFallback
-                    src={application.campaign?.imageUrl || "/placeholder.svg"}
+                    src={application.campaign?.imageEndpoint || "/placeholder.svg"}
                     alt={application.campaign?.title || "Campaign"}
                     fill
                     className="object-cover"

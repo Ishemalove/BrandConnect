@@ -26,8 +26,11 @@ public class Campaign {
     @Column(columnDefinition = "TEXT")
     private String requirements;
 
-    @Column(columnDefinition = "TEXT")
-    private String deliverables;
+    @Lob
+    private byte[] deliverables;
+
+    @Column(length = 255)
+    private String deliverablesName;
 
     @Column(length = 255)
     private String campaignType;
@@ -55,8 +58,10 @@ public class Campaign {
     public void setBrand(User brand) { this.brand = brand; }
     public String getRequirements() { return requirements; }
     public void setRequirements(String requirements) { this.requirements = requirements; }
-    public String getDeliverables() { return deliverables; }
-    public void setDeliverables(String deliverables) { this.deliverables = deliverables; }
+    public byte[] getDeliverables() { return deliverables; }
+    public void setDeliverables(byte[] deliverables) { this.deliverables = deliverables; }
+    public String getDeliverablesName() { return deliverablesName; }
+    public void setDeliverablesName(String deliverablesName) { this.deliverablesName = deliverablesName; }
     public String getCampaignType() { return campaignType; }
     public void setCampaignType(String campaignType) { this.campaignType = campaignType; }
     public LocalDate getStartDate() { return startDate; }

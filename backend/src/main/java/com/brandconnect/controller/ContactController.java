@@ -8,6 +8,8 @@ import com.brandconnect.repository.ContactMessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.brandconnect.model.NewsletterSubscriber;
 import com.brandconnect.repository.NewsletterSubscriberRepository;
+import com.brandconnect.service.EmailService;
+import org.springframework.beans.factory.annotation.Value;
 
 @RestController
 @RequestMapping("/api/contact")
@@ -18,6 +20,12 @@ public class ContactController {
 
     @Autowired
     private NewsletterSubscriberRepository newsletterSubscriberRepository;
+
+    @Autowired
+    private EmailService emailService;
+
+    @Value("${contact.notification.email:nkerabahizilove@gmail.com}")
+    private String adminEmail;
 
     @PostMapping
     public ResponseEntity<?> submitContact(@RequestBody ContactRequest request) {
@@ -37,6 +45,18 @@ public class ContactController {
                     sub.setEmail(request.email);
                     return newsletterSubscriberRepository.save(sub);
                 });
+            // Send notification to admin
+            emailService.sendEmail(
+                adminEmail,
+                "New Newsletter Subscription",
+                "A new user has subscribed to the newsletter: " + request.email
+            );
+            // Send confirmation to subscriber
+            emailService.sendEmail(
+                request.email,
+                "Thank you for subscribing!",
+                "Thank you for subscribing to our newsletter! You will receive updates from us."
+            );
         }
         // (Email sending will be added next)
         return ResponseEntity.ok().body("Contact form received");

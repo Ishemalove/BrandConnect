@@ -32,6 +32,7 @@ C:\Users\user\Downloads\BrandConnect\backend\src\main\java\com\brandconnect\repo
 C:\Users\user\Downloads\BrandConnect\backend\src\main\java\com\brandconnect\dto\RegisterRequest.java
 C:\Users\user\Downloads\BrandConnect\backend\src\main\java\com\brandconnect\repository\ConversationRepository.java
 C:\Users\user\Downloads\BrandConnect\backend\src\main\java\com\brandconnect\controller\ApplicationController.java
+C:\Users\user\Downloads\BrandConnect\backend\src\main\java\com\brandconnect\service\EmailService.java
 C:\Users\user\Downloads\BrandConnect\backend\src\main\java\com\brandconnect\config\JacksonConfig.java
 C:\Users\user\Downloads\BrandConnect\backend\src\main\java\com\brandconnect\controller\AuthController.java
 C:\Users\user\Downloads\BrandConnect\backend\src\main\java\com\brandconnect\security\CustomUserDetailsService.java

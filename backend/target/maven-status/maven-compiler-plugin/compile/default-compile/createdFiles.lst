@@ -10,6 +10,7 @@ com\brandconnect\security\JwtAuthenticationFilter.class
 com\brandconnect\model\ContactMessage.class
 com\brandconnect\repository\SavedCampaignRepository.class
 com\brandconnect\controller\CampaignController$CampaignDTO.class
+com\brandconnect\service\EmailService.class
 com\brandconnect\repository\CampaignRepository.class
 com\brandconnect\repository\ConversationRepository.class
 com\brandconnect\repository\UserRepository.class

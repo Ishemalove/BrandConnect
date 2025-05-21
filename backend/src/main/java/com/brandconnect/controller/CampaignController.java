@@ -11,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.CrossOrigin; 
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.http.MediaType;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -143,6 +145,35 @@ public class CampaignController {
             return ResponseEntity.status(500).body("Error deleting campaign: " + e.getMessage());
         }
     }
+
+    // Upload campaign image
+    @PostMapping("/{id}/image")
+    public ResponseEntity<?> uploadCampaignImage(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        try {
+            Optional<Campaign> campaignOpt = campaignRepository.findById(id);
+            if (campaignOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            Campaign campaign = campaignOpt.get();
+            campaign.setDeliverables(file.getBytes());
+            campaign.setDeliverablesName(file.getOriginalFilename());
+            campaignRepository.save(campaign);
+            return ResponseEntity.ok("Image uploaded successfully");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Error uploading image: " + e.getMessage());
+        }
+    }
+
+    // Serve campaign image as binary
+    @GetMapping(value = "/{id}/image", produces = MediaType.IMAGE_JPEG_VALUE)
+    public ResponseEntity<byte[]> getCampaignImage(@PathVariable Long id) {
+        Optional<Campaign> campaignOpt = campaignRepository.findById(id);
+        if (campaignOpt.isEmpty() || campaignOpt.get().getDeliverables() == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(campaignOpt.get().getDeliverables());
+    }
     
     // DTO to avoid lazy loading issues
     public static class CampaignDTO {
@@ -156,6 +187,7 @@ public class CampaignController {
         private String requirements;
         private String deliverables;
         private String campaignType;
+        private String imageEndpoint;
         private UserDTO brand;
         
         public CampaignDTO(Campaign campaign) {
@@ -167,8 +199,9 @@ public class CampaignController {
             this.endDate = campaign.getEndDate();
             this.startDate = campaign.getStartDate();
             this.requirements = campaign.getRequirements();
-            this.deliverables = campaign.getDeliverables();
+            this.deliverables = campaign.getDeliverablesName();
             this.campaignType = campaign.getCampaignType();
+            this.imageEndpoint = "/api/campaigns/" + campaign.getId() + "/image";
             
             if (campaign.getBrand() != null) {
                 this.brand = new UserDTO(campaign.getBrand());
@@ -186,6 +219,7 @@ public class CampaignController {
         public String getRequirements() { return requirements; }
         public String getDeliverables() { return deliverables; }
         public String getCampaignType() { return campaignType; }
+        public String getImageEndpoint() { return imageEndpoint; }
         public UserDTO getBrand() { return brand; }
     }
     

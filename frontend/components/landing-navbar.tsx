@@ -4,6 +4,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { usePathname } from "next/navigation"
 import { BrandConnectLogo } from "./brand-connect-logo"
+import ContactModal from "@/app/contact/page"
 
 export function LandingNavbar() {
   const pathname = usePathname()
@@ -29,11 +30,7 @@ export function LandingNavbar() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/contact">
-            <Button variant="outline" size="sm">
-              Contact Us
-            </Button>
-          </Link>
+          <ContactModal />
           <Link href="/login">
             <Button variant="ghost" size="sm">
               Log in

@@ -25,6 +25,7 @@ interface Campaign {
     name: string;
     logo?: string;
   };
+  imageEndpoint?: string;
 }
 
 export function SavedCampaigns() {
@@ -280,7 +281,7 @@ export function SavedCampaigns() {
               <Card key={campaign.id} className="overflow-hidden">
                 <div className="relative h-48 w-full">
                   <Image
-                  src={campaign.imageUrl || "/placeholder.svg"}
+                  src={campaign.imageEndpoint || "/placeholder.svg"}
                     alt={campaign.title}
                     fill
                     className="object-cover"
@@ -343,7 +344,7 @@ export function SavedCampaigns() {
                 <div className="flex flex-col md:flex-row">
                   <div className="relative h-48 md:h-auto md:w-64">
                     <Image
-                    src={campaign.imageUrl || "/placeholder.svg"}
+                    src={campaign.imageEndpoint || "/placeholder.svg"}
                       alt={campaign.title}
                       fill
                       className="object-cover"

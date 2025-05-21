@@ -19,7 +19,7 @@ export default function ApplicationsPage() {
         id: 3,
         title: "Debug Campaign 3",
         description: "This is a debug campaign to test display",
-        imageUrl: "/placeholder.svg",
+        imageEndpoint: "/placeholder.svg",
         category: "Debug",
         brand: {
           id: 1,
@@ -38,7 +38,7 @@ export default function ApplicationsPage() {
         id: 1,
         title: "Debug Campaign 1",
         description: "This is a debug campaign to test display",
-        imageUrl: "/placeholder.svg",
+        imageEndpoint: "/placeholder.svg",
         category: "Debug",
         brand: {
           id: 1,
@@ -57,7 +57,7 @@ export default function ApplicationsPage() {
         id: 2,
         title: "Debug Campaign 2",
         description: "This is a debug campaign to test display",
-        imageUrl: "/placeholder.svg",
+        imageEndpoint: "/placeholder.svg",
         category: "Debug",
         brand: {
           id: 1,

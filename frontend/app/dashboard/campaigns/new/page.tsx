@@ -18,6 +18,9 @@ import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { campaignService } from "@/lib/api-service"
 import { toast } from "@/components/ui/use-toast"
+import { useToast } from "@/components/ui/use-toast"
+import { ImageWithFallback } from "@/components/ui/image-with-fallback"
+import { z } from "zod"
 
 const categories = [
   "Fashion",
@@ -46,94 +49,75 @@ export default function NewCampaignPage() {
   const [startDate, setStartDate] = useState<Date | undefined>(new Date())
   const [endDate, setEndDate] = useState<Date | undefined>(undefined)
   const [imageUrl, setImageUrl] = useState<string>("")
-  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>("")
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string>("")
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-      setImageFile(file)
+      setSelectedFile(file)
       const previewUrl = await campaignService.uploadImagePreview(file)
       setImagePreview(previewUrl)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!title || !description || !selectedCategory || !startDate) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      })
-      return
-    }
-
+  async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!user) return
+    setLoading(true)
+    setError("")
     try {
-      setIsSubmitting(true)
-
-      // Log to debug JWT token issues
-      const token = localStorage.getItem("token")
-      console.log("Token available:", token ? "Yes" : "No")
-      console.log("Token starting with:", token ? token.substring(0, 20) + "..." : "N/A")
-      
-      let imageUrlToSend = imageUrl
-      if (imageFile) {
-        // Optionally, upload the image to your backend here and get a URL
-        // For now, just use the preview as a placeholder
-        imageUrlToSend = imagePreview
-      }
-
-      // Limit image URL length to avoid database issues
-      if (imageUrlToSend && imageUrlToSend.length > 30000) {
-        console.log("Warning: Image URL truncated, consider proper image upload solution")
-        imageUrlToSend = imageUrlToSend.substring(0, 30000)
-      }
-
+      // 1. Create the campaign first (without the image data in the initial payload)
       const campaignData = {
-        title,
-        description,
-        category: selectedCategory,
-        requirements,
-        deliverables,
-        campaignType,
-        startDate: startDate?.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        endDate: endDate?.toISOString().split('T')[0], // Format as YYYY-MM-DD
-        imageUrl: imageUrlToSend
+        title: values.title,
+        description: values.description,
+        category: values.category,
+        startDate: values.startDate.toISOString().split('T')[0],
+        endDate: values.endDate?.toISOString().split('T')[0],
+        requirements: values.requirements,
+        // Do NOT include imageUrl or deliverables here, they are handled separately
+        campaignType: campaignType,
       }
 
-      console.log("Submitting campaign data:", campaignData)
-      
-      try {
-      await campaignService.createCampaign(campaignData)
+      const createdCampaignResponse = await campaignService.createCampaign(campaignData)
+      const createdCampaign = createdCampaignResponse.data
+
+      // 2. If a file was selected, upload it using the dedicated endpoint
+      if (selectedFile && createdCampaign?.id) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        try {
+          await campaignService.uploadCampaignImage(createdCampaign.id.toString(), formData);
+          console.log("Image uploaded successfully for campaign ID:", createdCampaign.id);
+        } catch (imageUploadError) {
+          console.error("Error uploading image:", imageUploadError);
+          // Decide how to handle image upload failure (e.g., show a warning, or rollback campaign creation)
+          // For now, we'll just log the error and let the campaign be created without the image.
+          toast({
+            title: "Image Upload Failed",
+            description: "The campaign was created, but the image could not be uploaded. You can try adding it later.",
+            variant: "warning",
+          });
+        }
+      }
 
       toast({
-        title: "Success",
-        description: "Campaign created successfully",
+        title: "Campaign Created",
+        description: "Your campaign has been created successfully.",
       })
-
-      router.push("/dashboard/campaigns")
-      } catch (apiError: any) {
-        console.error("API Error details:", 
-          apiError.response?.data || apiError.message || "Unknown error")
-        
-        toast({
-          title: "Error",
-          description: apiError.response?.data || "Failed to create campaign",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      console.error("Error creating campaign:", error)
+      router.push(`/dashboard/campaigns/${createdCampaign.id}`)
+    } catch (err: any) {
+      console.error("Error creating campaign:", err)
+      setError(err.message || "Failed to create campaign")
       toast({
         title: "Error",
-        description: "Failed to create campaign",
+        description: err.userMessage || "Failed to create campaign. Please try again.",
         variant: "destructive",
       })
     } finally {
-      setIsSubmitting(false)
+      setLoading(false)
     }
   }
 
@@ -144,7 +128,7 @@ export default function NewCampaignPage() {
         <p className="text-muted-foreground mt-2">Fill in the details below to create a new marketing campaign</p>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={onSubmit}>
         <div className="space-y-6">
           <Card>
             <CardHeader>
