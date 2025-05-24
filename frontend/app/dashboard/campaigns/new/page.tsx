@@ -17,10 +17,13 @@ import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { campaignService } from "@/lib/api-service"
-import { toast } from "@/components/ui/use-toast"
+import { useAuth } from "@/components/auth-provider"
 import { useToast } from "@/components/ui/use-toast"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { z } from "zod"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
 
 const categories = [
   "Fashion",
@@ -37,38 +40,67 @@ const categories = [
   "Education",
 ]
 
+const formSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().min(1, "Description is required"),
+  category: z.string().min(1, "Category is required"),
+  startDate: z.date({
+    required_error: "A start date is required.",
+  }),
+  endDate: z.date().optional(),
+  requirements: z.string().min(1, "Requirements are required"),
+})
+
+type FormValues = z.infer<typeof formSchema>
+
 export default function NewCampaignPage() {
   const router = useRouter()
-
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [requirements, setRequirements] = useState("")
-  const [deliverables, setDeliverables] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState<string>("")
-  const [campaignType, setCampaignType] = useState<string>("post")
-  const [startDate, setStartDate] = useState<Date | undefined>(new Date())
-  const [endDate, setEndDate] = useState<Date | undefined>(undefined)
-  const [imageUrl, setImageUrl] = useState<string>("")
+  const { user } = useAuth()
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string>("")
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string>("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [error, setError] = useState<string>("")
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      category: "",
+      startDate: new Date(),
+      endDate: undefined,
+      requirements: "",
+    },
+  })
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       setSelectedFile(file)
-      const previewUrl = await campaignService.uploadImagePreview(file)
-      setImagePreview(previewUrl)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
     }
   }
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!user) return
+  async function onSubmit(values: FormValues) {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to create a campaign",
+        variant: "destructive",
+      })
+      return
+    }
+
     setLoading(true)
     setError("")
+
     try {
-      // 1. Create the campaign first (without the image data in the initial payload)
+      // 1. Create the campaign
       const campaignData = {
         title: values.title,
         description: values.description,
@@ -76,44 +108,56 @@ export default function NewCampaignPage() {
         startDate: values.startDate.toISOString().split('T')[0],
         endDate: values.endDate?.toISOString().split('T')[0],
         requirements: values.requirements,
-        // Do NOT include imageUrl or deliverables here, they are handled separately
-        campaignType: campaignType,
+        campaignType: "post", // Default to post type
       }
 
-      const createdCampaignResponse = await campaignService.createCampaign(campaignData)
-      const createdCampaign = createdCampaignResponse.data
+      console.log("Creating campaign with data:", campaignData)
+      const response = await campaignService.createCampaign(campaignData)
+      console.log("Campaign creation response:", response)
 
-      // 2. If a file was selected, upload it using the dedicated endpoint
-      if (selectedFile && createdCampaign?.id) {
-        const formData = new FormData();
-        formData.append('file', selectedFile);
+      if (!response.data || !response.data.id) {
+        throw new Error("Failed to create campaign: No campaign ID returned")
+      }
+
+      // 2. If a file was selected, upload it
+      if (selectedFile) {
+        const formData = new FormData()
+        formData.append('file', selectedFile)
 
         try {
-          await campaignService.uploadCampaignImage(createdCampaign.id.toString(), formData);
-          console.log("Image uploaded successfully for campaign ID:", createdCampaign.id);
+          // First try to upload the image
+          const uploadResponse = await fetch(`/api/campaigns/${response.data.id}/image`, {
+            method: 'POST',
+            body: formData,
+          })
+
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to upload image')
+          }
+
+          console.log("Image uploaded successfully")
         } catch (imageUploadError) {
-          console.error("Error uploading image:", imageUploadError);
-          // Decide how to handle image upload failure (e.g., show a warning, or rollback campaign creation)
-          // For now, we'll just log the error and let the campaign be created without the image.
+          console.error("Error uploading image:", imageUploadError)
           toast({
             title: "Image Upload Failed",
             description: "The campaign was created, but the image could not be uploaded. You can try adding it later.",
-            variant: "warning",
-          });
+            variant: "default",
+          })
         }
       }
 
       toast({
-        title: "Campaign Created",
-        description: "Your campaign has been created successfully.",
+        title: "Success",
+        description: "Campaign created successfully",
       })
-      router.push(`/dashboard/campaigns/${createdCampaign.id}`)
+
+      router.push(`/dashboard/campaigns/${response.data.id}`)
     } catch (err: any) {
       console.error("Error creating campaign:", err)
       setError(err.message || "Failed to create campaign")
       toast({
         title: "Error",
-        description: err.userMessage || "Failed to create campaign. Please try again.",
+        description: err.message || "Failed to create campaign. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -128,46 +172,59 @@ export default function NewCampaignPage() {
         <p className="text-muted-foreground mt-2">Fill in the details below to create a new marketing campaign</p>
       </div>
 
-      <form onSubmit={onSubmit}>
-        <div className="space-y-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <Card>
             <CardHeader>
               <CardTitle>Campaign Details</CardTitle>
               <CardDescription>Basic information about your campaign</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">Campaign Title</Label>
-                <Input
-                  id="title"
-                  placeholder="e.g., Summer Fashion Collection 2023"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  required
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Summer Fashion Collection 2023" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="description">Campaign Description</Label>
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Campaign Description</FormLabel>
+                    <FormControl>
                 <Textarea
-                  id="description"
                   placeholder="Describe your campaign, goals, and what you're looking for..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  rows={4}
-                  required
-                />
-              </div>
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              <div className="space-y-2">
-                <Label htmlFor="category">Category</Label>
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <FormControl>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {categories.map((category) => (
                     <div key={category} className="flex items-center space-x-2">
                       <Checkbox
                         id={`category-${category}`}
-                        checked={selectedCategory === category}
-                        onCheckedChange={() => setSelectedCategory(category)}
+                              checked={field.value === category}
+                              onCheckedChange={() => field.onChange(category)}
                       />
                       <Label htmlFor={`category-${category}`} className="cursor-pointer">
                         {category}
@@ -175,124 +232,128 @@ export default function NewCampaignPage() {
                     </div>
                   ))}
                 </div>
-              </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Campaign Type & Timeline</CardTitle>
-              <CardDescription>Define what type of content you need and when</CardDescription>
+              <CardTitle>Timeline</CardTitle>
+              <CardDescription>Define when your campaign will run</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Campaign Type</Label>
-                <RadioGroup
-                  value={campaignType}
-                  onValueChange={setCampaignType}
-                  className="grid grid-cols-1 md:grid-cols-3 gap-4"
-                >
-                  <div className="flex items-center space-x-2 border rounded-md p-3">
-                    <RadioGroupItem value="post" id="post" />
-                    <Label htmlFor="post" className="cursor-pointer">
-                      Social Media Posts
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 border rounded-md p-3">
-                    <RadioGroupItem value="video" id="video" />
-                    <Label htmlFor="video" className="cursor-pointer">
-                      Video Content
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2 border rounded-md p-3">
-                    <RadioGroupItem value="review" id="review" />
-                    <Label htmlFor="review" className="cursor-pointer">
-                      Product Reviews
-                    </Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Start Date</Label>
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>Start Date</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
+                        <FormControl>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !startDate && "text-muted-foreground",
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "PPP") : "Select date"}
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
+                        </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                      <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        className="rounded-md border"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date < new Date()
+                          }
+                          initialFocus
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <div className="space-y-2">
-                  <Label>End Date</Label>
+              <FormField
+                control={form.control}
+                name="endDate"
+                render={({ field }) => (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>End Date (Optional)</FormLabel>
                   <Popover>
                     <PopoverTrigger asChild>
+                        <FormControl>
                       <Button
                         variant="outline"
                         className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !endDate && "text-muted-foreground",
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
                         )}
                       >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "PPP") : "Select date"}
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
+                        </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar mode="single" selected={endDate} onSelect={setEndDate} className="rounded-md border" />
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value}
+                          onSelect={field.onChange}
+                          disabled={(date) =>
+                            date < new Date()
+                          }
+                          initialFocus
+                        />
                     </PopoverContent>
                   </Popover>
-                </div>
-              </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
           <Card>
             <CardHeader>
-              <CardTitle>Requirements & Deliverables</CardTitle>
+              <CardTitle>Requirements</CardTitle>
               <CardDescription>Specify what you need from creators</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="requirements">Creator Requirements</Label>
+              <FormField
+                control={form.control}
+                name="requirements"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Creator Requirements</FormLabel>
+                    <FormControl>
                 <Textarea
-                  id="requirements"
                   placeholder="e.g., Minimum follower count, specific niche, location, etc."
-                  value={requirements}
-                  onChange={(e) => setRequirements(e.target.value)}
-                  rows={3}
-                  required
+                        {...field}
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="deliverables">Expected Deliverables</Label>
-                <Textarea
-                  id="deliverables"
-                  placeholder="e.g., 2 Instagram posts, 3 TikTok videos, etc."
-                  value={deliverables}
-                  onChange={(e) => setDeliverables(e.target.value)}
-                  rows={3}
-                  required
-                />
-              </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="space-y-2">
                 <Label>Campaign Image</Label>
@@ -308,12 +369,12 @@ export default function NewCampaignPage() {
             <Button variant="outline" type="button" onClick={() => router.push("/dashboard/campaigns")}>
               Cancel
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? "Creating..." : "Create Campaign"}
+            <Button type="submit" disabled={loading}>
+              {loading ? "Creating..." : "Create Campaign"}
             </Button>
-          </div>
         </div>
       </form>
+      </Form>
     </div>
   )
 }

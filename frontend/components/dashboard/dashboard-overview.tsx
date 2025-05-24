@@ -84,9 +84,27 @@ export function DashboardOverview() {
         setStats(dashboardStats)
         
         // Fetch recent campaigns
-        const campaignsResponse = await campaignService.getCampaigns()
+        const campaignsResponse = await campaignService.getCampaigns({ sort: 'startDate,desc' })
+
         if (campaignsResponse && campaignsResponse.data) {
-          setRecentCampaigns(campaignsResponse.data.slice(0, 3)) // Take first 3 campaigns
+          // If the response is paginated (like from Spring Data JPA Page), access content
+          const campaignsData = Array.isArray(campaignsResponse.data.content) 
+            ? campaignsResponse.data.content 
+            : campaignsResponse.data;
+
+          // Ensure we have an array before slicing
+          if (Array.isArray(campaignsData)) {
+             // Filter campaigns to only show those with an end date in the future or no end date
+            const now = new Date().toISOString().split('T')[0];
+            const activeOrUpcomingCampaigns = campaignsData.filter(campaign => 
+               !campaign.endDate || campaign.endDate >= now
+            );
+            setRecentCampaigns(activeOrUpcomingCampaigns.slice(0, 3)); // Take up to 3 active/upcoming campaigns
+            console.log('Fetched and filtered recent campaigns for dashboard:', activeOrUpcomingCampaigns.slice(0, 3));
+          } else {
+            console.error('Unexpected campaign data format for recent campaigns:', campaignsData);
+            setRecentCampaigns([]);
+          }
         }
       } catch (error) {
         console.error("Error fetching dashboard data:", error)

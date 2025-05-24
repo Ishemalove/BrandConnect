@@ -19,6 +19,12 @@ import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.io.IOException;
+import java.util.UUID;
+import java.nio.file.StandardCopyOption;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -117,7 +123,6 @@ public class CampaignController {
             campaign.setImageUrl(updated.getImageUrl());
             campaign.setEndDate(updated.getEndDate());
             campaign.setRequirements(updated.getRequirements());
-            campaign.setDeliverables(updated.getDeliverables());
             campaign.setCampaignType(updated.getCampaignType());
             campaign.setStartDate(updated.getStartDate());
             
@@ -154,10 +159,28 @@ public class CampaignController {
             if (campaignOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
+
+            // Create uploads directory if it doesn't exist
+            Path uploadsDir = Paths.get("uploads");
+            if (!Files.exists(uploadsDir)) {
+                Files.createDirectories(uploadsDir);
+            }
+
+            // Generate unique filename
+            String originalFilename = file.getOriginalFilename();
+            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String filename = UUID.randomUUID().toString() + extension;
+            Path filePath = uploadsDir.resolve(filename);
+
+            // Save file to disk
+            Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Update campaign with file path and name
             Campaign campaign = campaignOpt.get();
-            campaign.setDeliverables(file.getBytes());
-            campaign.setDeliverablesName(file.getOriginalFilename());
+            campaign.setImageUrl("/uploads/" + filename);
+            campaign.setDeliverablesName(originalFilename);
             campaignRepository.save(campaign);
+
             return ResponseEntity.ok("Image uploaded successfully");
         } catch (Exception e) {
             e.printStackTrace();
@@ -165,14 +188,23 @@ public class CampaignController {
         }
     }
 
-    // Serve campaign image as binary
+    // Serve campaign image
     @GetMapping(value = "/{id}/image", produces = MediaType.IMAGE_JPEG_VALUE)
     public ResponseEntity<byte[]> getCampaignImage(@PathVariable Long id) {
         Optional<Campaign> campaignOpt = campaignRepository.findById(id);
-        if (campaignOpt.isEmpty() || campaignOpt.get().getDeliverables() == null) {
+        if (campaignOpt.isEmpty() || campaignOpt.get().getImageUrl() == null) {
             return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.ok(campaignOpt.get().getDeliverables());
+
+        try {
+            String imagePath = campaignOpt.get().getImageUrl();
+            Path filePath = Paths.get(imagePath.substring(1)); // Remove leading slash
+            byte[] imageBytes = Files.readAllBytes(filePath);
+            return ResponseEntity.ok(imageBytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).build();
+        }
     }
     
     // DTO to avoid lazy loading issues

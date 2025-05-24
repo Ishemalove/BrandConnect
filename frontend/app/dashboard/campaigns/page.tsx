@@ -15,6 +15,7 @@ import { toast } from "@/components/ui/use-toast"
 import { ImageWithFallback } from "@/components/ui/image-with-fallback"
 import { Pagination } from "@/components/ui/pagination"
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { cn } from "@/lib/utils"
 
 // Campaign type
 interface Campaign {
@@ -41,7 +42,7 @@ export default function CampaignsPage() {
   const initialQuery = searchParams?.get('query') || ''
   const initialSort = searchParams?.get('sort') || 'newest'
   const initialPage = parseInt(searchParams?.get('page') || '1', 10)
-  const initialStatus = searchParams?.get('status') || 'active'
+  const initialStatus = searchParams?.get('status') || 'all'
   
   // Set state from URL parameters
   const [searchQuery, setSearchQuery] = useState<string>(initialQuery)
@@ -177,6 +178,8 @@ export default function CampaignsPage() {
       const now = new Date().toISOString().split('T')[0]
       
       switch (activeTab) {
+        case 'all':
+          return campaigns;
         case 'active':
           return campaigns.filter(campaign => 
             campaign.startDate <= now && 
@@ -300,203 +303,139 @@ export default function CampaignsPage() {
         </div>
       </div>
 
+      {/* Status Tabs */}
+      <Tabs defaultValue={activeTab} onValueChange={handleStatusChange} className="w-full mb-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="all">All ({campaigns.length})</TabsTrigger>
+          <TabsTrigger value="active">Active ({campaigns.filter(c => {
+             const now = new Date().toISOString().split('T')[0];
+             return c.startDate <= now && (!c.endDate || c.endDate >= now);
+          }).length})</TabsTrigger>
+          <TabsTrigger value="draft">Draft ({campaigns.filter(c => {
+             const now = new Date().toISOString().split('T')[0];
+             return c.startDate > now;
+          }).length})</TabsTrigger>
+          <TabsTrigger value="completed">Completed ({campaigns.filter(c => {
+             const now = new Date().toISOString().split('T')[0];
+             return c.endDate && c.endDate < now;
+          }).length})</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       {loading ? (
         <div className="flex justify-center items-center p-12">
           <div className="animate-spin h-8 w-8 border-t-2 border-b-2 border-primary rounded-full"></div>
         </div>
-      ) : campaigns.length === 0 ? (
+      ) : filteredCampaigns.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-64">
           <h3 className="text-xl font-semibold mb-2">No campaigns found</h3>
-          <p className="text-muted-foreground mb-4">Create your first campaign to get started</p>
+            <p className="text-muted-foreground mb-4">
+               {debouncedQuery ? 
+                  `No campaigns found matching your search in ${activeTab === 'all' ? 'all campaigns' : `${activeTab} campaigns`}.` 
+                  : activeTab === 'all' ? 'Create your first campaign to get started' : `No ${activeTab} campaigns found.`}
+            </p>
+            {activeTab === 'all' && !debouncedQuery && (
           <Link href="/dashboard/campaigns/new">
             <Button>
               <PlusCircle className="h-4 w-4 mr-2" />
               Create Campaign
             </Button>
           </Link>
+            )}
         </div>
       ) : (
-        <Tabs value={activeTab} onValueChange={handleStatusChange} className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="active">Active ({filteredCampaigns.filter(c => {
-              const now = new Date().toISOString().split('T')[0];
-              return c.startDate <= now && (!c.endDate || c.endDate >= now);
-            }).length})</TabsTrigger>
-            <TabsTrigger value="draft">Draft ({filteredCampaigns.filter(c => {
-              const now = new Date().toISOString().split('T')[0];
-              return c.startDate > now;
-            }).length})</TabsTrigger>
-            <TabsTrigger value="completed">Completed ({filteredCampaigns.filter(c => {
-              const now = new Date().toISOString().split('T')[0];
-              return c.endDate && c.endDate < now;
-            }).length})</TabsTrigger>
-          </TabsList>
+        // Campaign List and Pagination
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredCampaigns.map((campaign) => {
+              // Determine status for badge based on dates
+              const now = new Date();
+              const startDate = campaign.startDate ? new Date(campaign.startDate) : null;
+              const endDate = campaign.endDate ? new Date(campaign.endDate) : null;
+              
+              let status = "Draft";
+              let badgeVariant = "gray";
+              
+              if (startDate && startDate <= now && (!endDate || endDate >= now)) {
+                status = "Active";
+                badgeVariant = "green";
+              } else if (endDate && endDate < now) {
+                status = "Completed";
+                 badgeVariant = "blue";
+              }
 
-          <TabsContent value="active" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayCampaigns.length === 0 ? (
-                <div className="col-span-3 py-12 text-center">
-                  <p className="text-muted-foreground">
-                    {debouncedQuery ? "No campaigns found matching your search." : "No active campaigns"}
-                  </p>
-                </div>
-              ) : (
-                displayCampaigns.map((campaign) => (
-                  <Card key={campaign.id}>
-                    <CardHeader className="p-4 pb-2">
-                      <div className="relative w-full h-40 mb-2">
-                        <ImageWithFallback
-                          src={campaign.imageEndpoint || "/placeholder.jpg"}
-                          alt={campaign.title}
-                          fill
-                          className="object-cover rounded-md"
-                          fallbackSrc="/placeholder.jpg"
-                        />
-                      </div>
-                      <CardTitle className="text-lg">{campaign.title}</CardTitle>
-                      <CardDescription>{campaign.category}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                        {campaign.description}
-                      </p>
-                      <div className="flex justify-between text-sm">
-                        <span>Type: {campaign.campaignType}</span>
-                        <span>Ends: {new Date(campaign.endDate).toLocaleDateString()}</span>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="p-4 pt-0 flex justify-between">
-                      <span className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full">Active</span>
-                      <Link href={`/dashboard/campaigns/${campaign.id}`}>
-                        <Button variant="outline" size="sm">
-                          View Details
-                        </Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
-                ))
-              )}
-            </div>
-            
-            {totalFilteredPages > 1 && (
-              <Pagination 
-                currentPage={currentPage} 
-                totalPages={totalFilteredPages} 
-                onPageChange={handlePageChange} 
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="draft" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayCampaigns.length === 0 ? (
-                <div className="col-span-3 py-12 text-center">
-                  <p className="text-muted-foreground">
-                    {debouncedQuery ? "No campaigns found matching your search." : "No draft campaigns"}
-                  </p>
-                </div>
-              ) : (
-                displayCampaigns.map((campaign) => (
-                  <Card key={campaign.id}>
-                    <CardHeader className="p-4 pb-2">
-                      <div className="relative w-full h-40 mb-2">
-                        <ImageWithFallback
-                          src={campaign.imageEndpoint || "/placeholder.jpg"}
-                          alt={campaign.title}
-                          fill
-                          className="object-cover rounded-md"
-                          fallbackSrc="/placeholder.jpg"
-                        />
-                      </div>
-                      <CardTitle className="text-lg">{campaign.title}</CardTitle>
-                      <CardDescription>{campaign.category}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                        {campaign.description}
-                      </p>
-                      <div className="flex justify-between text-sm">
-                        <span>Type: {campaign.campaignType}</span>
-                        <span>Starts: {new Date(campaign.startDate).toLocaleDateString()}</span>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="p-4 pt-0 flex justify-between">
-                      <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">Draft</span>
-                      <Link href={`/dashboard/campaigns/${campaign.id}/edit`}>
-                        <Button variant="outline" size="sm">
-                          Edit
-                        </Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
-                ))
-              )}
-            </div>
-            
-            {totalFilteredPages > 1 && (
-              <Pagination 
-                currentPage={currentPage} 
-                totalPages={totalFilteredPages} 
-                onPageChange={handlePageChange} 
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="completed" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {displayCampaigns.length === 0 ? (
-                <div className="col-span-3 py-12 text-center">
-                  <p className="text-muted-foreground">
-                    {debouncedQuery ? "No campaigns found matching your search." : "No completed campaigns"}
-                  </p>
-                </div>
-              ) : (
-                displayCampaigns.map((campaign) => (
-                  <Card key={campaign.id}>
-                    <CardHeader className="p-4 pb-2">
-                      <div className="relative w-full h-40 mb-2">
-                        <ImageWithFallback
-                          src={campaign.imageEndpoint || "/placeholder.jpg"}
-                          alt={campaign.title}
-                          fill
-                          className="object-cover rounded-md"
-                          fallbackSrc="/placeholder.jpg"
-                        />
-                      </div>
-                      <CardTitle className="text-lg">{campaign.title}</CardTitle>
-                      <CardDescription>{campaign.category}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0">
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
-                        {campaign.description}
-                      </p>
-                      <div className="flex justify-between text-sm">
-                        <span>Type: {campaign.campaignType}</span>
-                        <span>Ended: {new Date(campaign.endDate).toLocaleDateString()}</span>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="p-4 pt-0 flex justify-between">
-                      <span className="bg-gray-100 text-gray-800 text-xs px-2 py-1 rounded-full">Completed</span>
-                      <Link href={`/dashboard/campaigns/${campaign.id}`}>
+              return (
+                <Card key={campaign.id}>
+                  <CardHeader className="p-4 pb-2">
+                    <div className="relative w-full h-40 mb-2">
+                      <ImageWithFallback
+                      src={campaign.imageEndpoint || "/placeholder.jpg"}
+                        alt={campaign.title}
+                        fill
+                        className="object-cover rounded-md"
+                        fallbackSrc="/placeholder.jpg"
+                      />
+                    </div>
+                    <CardTitle className="text-lg">{campaign.title}</CardTitle>
+                    <CardDescription>{campaign.category}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-4 pt-0">
+                    <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                      {campaign.description}
+                    </p>
+                    <div className="flex justify-between text-sm">
+                      <span>Type: {campaign.campaignType}</span>
+                    {campaign.endDate ? (
+                       <span>Ends: {new Date(campaign.endDate).toLocaleDateString()}</span>
+                    ) : campaign.startDate ? (
+                      <span>Starts: {new Date(campaign.startDate).toLocaleDateString()}</span>
+                    ) : null}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="p-4 pt-0 flex justify-between">
+                  <span 
+                    className={cn(
+                       "text-xs px-2 py-1 rounded-full",
+                       badgeVariant === 'green' && 'bg-green-100 text-green-800',
+                       badgeVariant === 'blue' && 'bg-blue-100 text-blue-800',
+                       badgeVariant === 'gray' && 'bg-gray-100 text-gray-800'
+                    )}
+                  >
+                   {status}
+                  </span>
+                  {status === 'Draft' ? (
+                    <Link href={`/dashboard/campaigns/${campaign.id}/edit`}>
+                      <Button variant="outline" size="sm">
+                        Edit
+                      </Button>
+                    </Link>
+                  ) : status === 'Completed' ? (
+                     <Link href={`/dashboard/campaigns/${campaign.id}/results`}> {/* Assuming a results page path */}
                         <Button variant="outline" size="sm">
                           View Results
                         </Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
-                ))
-              )}
-            </div>
-            
-            {totalFilteredPages > 1 && (
-              <Pagination 
-                currentPage={currentPage} 
-                totalPages={totalFilteredPages} 
-                onPageChange={handlePageChange} 
-              />
-            )}
-          </TabsContent>
-        </Tabs>
+                     </Link>
+                  ) : (
+                    <Link href={`/dashboard/campaigns/${campaign.id}`}>
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
+                    </Link>
+                  )}
+                  </CardFooter>
+                </Card>
+              )
+            })}
+          </div>
+
+          {totalFilteredPages > 1 && ( // Only show pagination if there's more than one page of filtered items
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalFilteredPages}
+              onPageChange={handlePageChange}
+            />
+          )}
+        </>
       )}
     </div>
   )

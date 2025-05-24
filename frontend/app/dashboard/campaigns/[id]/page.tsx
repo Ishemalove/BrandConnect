@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useAuth } from "@/components/auth-provider"
 import { campaignService, applicationService } from "@/lib/api-service"
 import { useToast } from "@/components/ui/use-toast"
@@ -13,16 +13,19 @@ import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Clock, Heart, Calendar, User, FileText, Package, Globe, ArrowLeft, ChevronLeft } from "lucide-react"
+import { Clock, Heart, Calendar, User, FileText, Package, Globe, ArrowLeft, ChevronLeft, Edit, Trash2 } from "lucide-react"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 
 export default function CampaignDetailPage() {
   const params = useParams()
   const campaignId = params.id as string
   const { user } = useAuth()
   const { toast } = useToast()
+  const router = useRouter()
   
   const [campaign, setCampaign] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [isDeleting, setIsDeleting] = useState(false)
   const [hasApplied, setHasApplied] = useState(false)
   const [showApplicationForm, setShowApplicationForm] = useState(false)
   
@@ -49,6 +52,12 @@ export default function CampaignDetailPage() {
             console.error("Error checking existing applications:", error)
           }
         }
+
+        // Log campaign data and ownership status
+        console.log("Fetched Campaign Data:", response.data);
+        console.log("Current User:", user);
+        console.log("Is Campaign Owner:", user?.role === "BRAND" && response.data?.brand?.id === user?.id);
+
       } catch (error) {
         console.error("Error fetching campaign:", error)
         toast({
@@ -79,6 +88,30 @@ export default function CampaignDetailPage() {
     })
   }
   
+  const handleDeleteCampaign = async () => {
+    setIsDeleting(true)
+    try {
+      await campaignService.deleteCampaign(campaignId)
+      toast({
+        title: "Campaign Deleted",
+        description: "The campaign has been successfully deleted.",
+      })
+      router.push("/dashboard/campaigns") // Redirect after deletion
+    } catch (error) {
+      console.error("Error deleting campaign:", error)
+      toast({
+        title: "Error",
+        description: "Failed to delete campaign. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Check if the current user is the brand who created the campaign
+  const isCampaignOwner = user?.role === "BRAND" && campaign?.brand?.id === user?.id;
+
   if (loading) {
     return (
       <div className="p-8 max-w-5xl mx-auto">
@@ -109,7 +142,7 @@ export default function CampaignDetailPage() {
   }
   
   // Format dates for display
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     if (!dateString) return "Not specified"
     return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
@@ -127,13 +160,62 @@ export default function CampaignDetailPage() {
   
   return (
     <div className="p-8 max-w-5xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-6 flex justify-between items-center">
         <Link href="/dashboard/campaigns">
           <Button variant="ghost" size="sm">
             <ChevronLeft className="h-4 w-4 mr-2" />
             Back to Campaigns
           </Button>
         </Link>
+
+        {isCampaignOwner && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // TODO: Implement edit functionality
+                console.log("Edit campaign:", campaign.id);
+                toast({
+                  title: "Edit Functionality",
+                  description: "Edit page is not yet implemented.",
+                });
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Edit Campaign
+            </Button>
+
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="sm" disabled={isDeleting}>
+                  {isDeleting ? (
+                     <>
+                       <Trash2 className="h-4 w-4 mr-2 animate-pulse" /> Deleting...
+                     </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-4 w-4 mr-2" /> Delete Campaign
+                    </>
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete your campaign
+                    and remove all associated data from our servers.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteCampaign}>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
