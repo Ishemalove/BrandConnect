@@ -1,4 +1,4 @@
-**BrandConnect Project Overview**
+**BrandConnect Project Overview**    
 
 **Project Name:** BrandConnect
 
