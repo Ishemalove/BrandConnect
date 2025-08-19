@@ -20,7 +20,7 @@ BrandConnect is a collaborative platform that connects **brands** with **creator
 * HTTP Requests: Axios
 * Routing: Next.js routing
 * Notifications: react-hot-toast
-
+    
 **Backend:**
 
 * Language: Java (Spring Boot)
